@@ -763,8 +763,266 @@ tbody tr:hover td{color:var(--text);}
 </div>
 
 <div class="mo" id="mo-add-course">
-  <div class="md md-wide">
-    <div class="mt">📚 Add New Course</div>
+  <div style="background:var(--surface);border-radius:16px;width:720px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.18);overflow:hidden;">
+
+    <!-- Wizard header -->
+    <div style="padding:22px 28px 0;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div style="font-size:17px;font-weight:800;">Add New Course</div>
+        <button onclick="closeModal('mo-add-course')" style="width:30px;height:30px;border:1px solid var(--border);background:var(--surface2);border-radius:7px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--text2);">✕</button>
+      </div>
+
+      <!-- Step indicator -->
+      <div style="display:flex;align-items:center;margin-bottom:0;" id="wiz-steps">
+        ${[
+          {n:1,label:'Basic Info'},
+          {n:2,label:'Target Roles'},
+          {n:3,label:'Materials'},
+          {n:4,label:'Exams'},
+        ].map((s,i,arr)=>`
+        <div style="display:flex;align-items:center;flex:${i<arr.length-1?'1':'0'};">
+          <div onclick="goWizStep(${s.n})" style="display:flex;align-items:center;gap:8px;cursor:pointer;" id="wstep-${s.n}">
+            <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;transition:all .2s;
+              ${i===0?'background:var(--accent);color:#fff;':'background:var(--surface2);border:2px solid var(--border);color:var(--text3);'}" id="wstep-circle-${s.n}">${s.n}</div>
+            <span style="font-size:12px;font-weight:600;white-space:nowrap;transition:color .2s;${i===0?'color:var(--accent);':'color:var(--text3);'}" id="wstep-label-${s.n}">${s.label}</span>
+          </div>
+          ${i<arr.length-1?`<div style="flex:1;height:2px;margin:0 10px;border-radius:2px;transition:background .3s;" id="wstep-line-${s.n}" class="wiz-line"></div>`:''}
+        </div>`).join('')}
+      </div>
+
+      <!-- Divider -->
+      <div style="height:1px;background:var(--border);margin:18px -28px 0;"></div>
+    </div>
+
+    <!-- Step content (scrollable) -->
+    <div style="flex:1;overflow-y:auto;padding:22px 28px;" id="wiz-body">
+
+      <!-- ── STEP 1: Basic Info ── -->
+      <div id="wstep-content-1">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--text2);">① Basic Information</div>
+        <div class="frow" style="margin-bottom:13px;">
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Course Title (EN) *</label><input class="form-input" id="c-title-en" placeholder="e.g. Fire Safety & Emergency Response"></div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Course Title (AR) *</label><input class="form-input" id="c-title-ar" placeholder="سلامة الحرائق" style="direction:rtl;"></div>
+        </div>
+        <div class="fg">
+          <label class="fl">Course ID</label>
+          <input class="form-input" id="c-id" placeholder="CRS-10430" style="max-width:200px;">
+        </div>
+        <div class="frow" style="margin-bottom:13px;">
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Course Category *</label>
+            <select class="form-select"><option>HSE</option><option>Safety</option><option>Hazmat</option><option>PPE</option><option>Medical</option><option>Risk</option></select>
+          </div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Sub-Category *</label>
+            <select class="form-select"><option>Safety</option><option>Fire Safety</option><option>Chemical</option><option>First Aid</option><option>General</option></select>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">Description (EN) *</label>
+          <div style="border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+            <div style="display:flex;gap:0;padding:7px 10px;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;gap:2px;">
+              ${['B','I','U','S','<>','""','≡','≡≡','H▾','↔','A','⬛'].map(t=>`<button style="padding:3px 7px;border:none;background:transparent;cursor:pointer;border-radius:4px;font-size:12px;color:var(--text2);font-family:inherit;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">${t}</button>`).join('')}
+            </div>
+            <textarea class="form-input" style="border:none;border-radius:0;min-height:90px;resize:vertical;" placeholder="Course objectives and overview in English..."></textarea>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">Description (AR) *</label>
+          <div style="border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+            <div style="display:flex;gap:0;padding:7px 10px;border-bottom:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;gap:2px;">
+              ${['B','I','U','S','<>','""','≡','≡≡','H▾','↔','A','⬛'].map(t=>`<button style="padding:3px 7px;border:none;background:transparent;cursor:pointer;border-radius:4px;font-size:12px;color:var(--text2);font-family:inherit;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">${t}</button>`).join('')}
+            </div>
+            <textarea class="form-input" style="border:none;border-radius:0;min-height:90px;resize:vertical;direction:rtl;" placeholder="أهداف الكورس بالعربي..."></textarea>
+          </div>
+        </div>
+        <div class="frow" style="margin-bottom:13px;">
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Duration (hours)</label><input class="form-input" type="number" placeholder="8"></div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Cert. Validity (months)</label><input class="form-input" type="number" placeholder="24"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;">
+          <div>
+            <div style="font-size:13px;font-weight:600;">Certificate</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">Issue a certificate upon course completion</div>
+          </div>
+          <button class="tog on" onclick="this.classList.toggle('on')"></button>
+        </div>
+      </div>
+
+      <!-- ── STEP 2: Target Roles ── -->
+      <div id="wstep-content-2" style="display:none;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text2);">② Target Roles</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:14px;">Select which job roles this training applies to. Choose between Mandatory, Recommended or Optional for each.</div>
+
+        <!-- Search -->
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;padding:9px 13px;margin-bottom:14px;">
+          <span style="font-size:15px;color:var(--text3);">🔍</span>
+          <input style="border:none;background:transparent;outline:none;font-family:inherit;font-size:13px;color:var(--text);flex:1;" placeholder="Search" oninput="filterJTSearch(this.value)">
+        </div>
+
+        <!-- Roles list -->
+        <div style="display:flex;flex-direction:column;gap:1px;" id="jt-list-v2">
+          ${[
+            {title:'HSE Manager',count:5},
+            {title:'Safety Engineer',count:8},
+            {title:'HSE Supervisor',count:6},
+            {title:'Safety Officer',count:7},
+            {title:'Operations Lead',count:10},
+            {title:'Maintenance Tech',count:12},
+            {title:'Logistics Driver',count:8},
+            {title:'Lab Technician',count:4},
+            {title:'Site Operator',count:9},
+          ].map((r,i)=>`
+          <div class="jt-row-v2" style="display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:7px;">
+                <div style="width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;" id="jt-icon-${i}" onclick="toggleJTSelect(${i})">⊗</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;">${r.title}</div>
+                  <div style="font-size:11px;color:var(--text3);">${r.count} staff</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="jt-lvl-btn" data-row="${i}" data-lvl="mandatory" onclick="setJTLevel(${i},'mandatory',this)" style="padding:7px 18px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;transition:all .14s;">Mandatory</button>
+              <button class="jt-lvl-btn" data-row="${i}" data-lvl="recommended" onclick="setJTLevel(${i},'recommended',this)" style="padding:7px 18px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;transition:all .14s;">Recommendation</button>
+              <button class="jt-lvl-btn" data-row="${i}" data-lvl="optional" onclick="setJTLevel(${i},'optional',this)" style="padding:7px 18px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;transition:all .14s;">Optional</button>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- ── STEP 3: Materials ── -->
+      <div id="wstep-content-3" style="display:none;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text2);">③ Course Materials & Resources</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">Upload materials for trainees. Set when each file becomes visible.</div>
+
+        <div style="display:grid;grid-template-columns:240px 1fr;gap:16px;min-height:320px;">
+          <!-- Upload form -->
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:11px;">
+            <div style="font-size:12px;font-weight:700;">Upload New File</div>
+            <div style="font-size:10px;color:var(--text3);">PDF, PPT, DOCX, MP4 — max 200MB</div>
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600;">File Type</div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                ${['PDF','PPT','Video','Word','Other'].map((tp,ti)=>`<div onclick="selMatType('${tp}',this)" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 5px;border:1.5px solid ${ti===0?'var(--accent)':'var(--border)'};border-radius:7px;cursor:pointer;min-width:40px;background:${ti===0?'var(--accent-h)':'var(--surface)'};transition:all .14s;">
+                  <span style="font-size:16px;">${['📕','📊','🎬','📘','📄'][ti]}</span>
+                  <span style="font-size:9px;font-weight:700;color:${ti===0?'var(--accent)':'var(--text3)'};">${tp}</span>
+                </div>`).join('')}
+              </div>
+            </div>
+            <div class="fg" style="margin-bottom:0;"><label class="fl">Title *</label><input class="form-input" id="mat-title-wiz" placeholder="e.g. Module 1 — Introduction"></div>
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600;">When visible to trainees?</div>
+              ${[{v:'before',ic:'⏰',lbl:'Before Session'},{v:'during',ic:'▶️',lbl:'During Session'},{v:'after',ic:'🎯',lbl:'After — Pre-Quiz'}].map((o,oi)=>`
+              <div onclick="selMatVis('${o.v}',this)" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid ${oi===1?'var(--accent)':'var(--border)'};border-radius:8px;cursor:pointer;background:${oi===1?'var(--accent-h)':'var(--surface)'};margin-bottom:5px;transition:all .14s;">
+                <span style="font-size:13px;">${o.ic}</span>
+                <span style="font-size:12px;font-weight:500;flex:1;">${o.lbl}</span>
+                <div style="width:15px;height:15px;border-radius:50%;border:2px solid ${oi===1?'var(--accent)':'var(--border)'};display:flex;align-items:center;justify-content:center;">${oi===1?'<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></div>':''}</div>
+              </div>`).join('')}
+            </div>
+            <label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:2px dashed var(--border);border-radius:8px;padding:16px;cursor:pointer;background:var(--surface);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <input type="file" style="display:none" onchange="addWizMat(this)">
+              <span style="font-size:22px;opacity:.4;">☁️</span>
+              <span style="font-size:11px;color:var(--text3);">Click or drag & drop</span>
+            </label>
+            <button class="btn btn-primary btn-sm" onclick="document.querySelector('#wstep-content-3 label input').click()">+ Add File</button>
+          </div>
+
+          <!-- Files list -->
+          <div id="mat-wiz-list" style="display:flex;flex-direction:column;gap:10px;">
+            ${[
+              {ic:'📕',name:'Module 1 — Introduction to Fire Safety',size:'3.2 MB',vis:'Before Session',vc:'var(--accent)',vb:'var(--accent-h)'},
+              {ic:'📊',name:'Session Slides',size:'5.8 MB',vis:'During Session',vc:'var(--blue)',vb:'rgba(29,78,216,.08)'},
+              {ic:'📕',name:'Post-Session Quiz Sheet',size:'0.4 MB',vis:'After — Pre-Quiz',vc:'var(--orange)',vb:'rgba(217,119,6,.08)'},
+            ].map(m=>`
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <span style="font-size:20px;flex-shrink:0;">${m.ic}</span>
+              <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">${m.name}</div><div style="font-size:10px;color:var(--text3);">${m.size}</div></div>
+              <span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:7px;background:${m.vb};color:${m.vc};white-space:nowrap;">${m.vis}</span>
+              <button onclick="this.closest('div').remove()" style="width:22px;height:22px;border:1px solid rgba(220,38,38,.2);background:rgba(220,38,38,.06);border-radius:5px;cursor:pointer;color:var(--red);font-size:11px;">✕</button>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 4: Exams ── -->
+      <div id="wstep-content-4" style="display:none;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text2);">④ Exams & Assessments</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:14px;">Add one or more exams. Instructor picks which one to use per session.</div>
+        <div id="exam-cards-list" style="display:flex;flex-direction:column;gap:8px;">
+          <div class="exam-card" id="ec-1">
+            <div class="ec-header" onclick="toggleEC('ec-1')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(document.getElementById('ec-body-1').style.display==='none')this.style.borderColor='var(--border)'">
+              <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:700;" id="ec-title-display-1">Final Assessment</div>
+                <div style="display:flex;gap:7px;margin-top:3px;align-items:center;"><span class="badge bb" id="ec-type-badge-1" style="font-size:9px;">💻 Online</span><span style="font-size:10px;color:var(--text2);" id="ec-meta-1">0 questions · Pass: 70%</span></div>
+              </div>
+              <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="ec-total-1">0</div>
+              <span style="font-size:10px;color:var(--text3);">marks</span>
+              <span style="color:var(--text3);font-size:13px;transition:transform .2s;" id="ec-arrow-1">▾</span>
+              <button onclick="event.stopPropagation();removeExamCard('ec-1')" style="width:24px;height:24px;border:1px solid rgba(220,38,38,.22);background:rgba(220,38,38,.07);border-radius:6px;cursor:pointer;color:var(--red);font-size:11px;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+            <div id="ec-body-1" style="display:none;border:1.5px solid var(--accent);border-top:none;border-radius:0 0 9px 9px;padding:14px 16px;background:var(--surface2);">
+              <div class="fg"><label class="fl">Exam Title *</label><input class="form-input" placeholder="Final Assessment" value="Final Assessment" oninput="document.getElementById('ec-title-display-1').textContent=this.value||'Exam 1'" style="font-weight:700;"></div>
+              <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+                <div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Exam Type</div>
+                  <div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;">
+                    <button onclick="setExamCardType('1','online',this)" style="padding:6px 16px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:var(--accent);color:#fff;">💻 Online</button>
+                    <button onclick="setExamCardType('1','paper',this)" style="padding:6px 16px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:transparent;color:var(--text2);">📄 Paper</button>
+                  </div>
+                </div>
+                <div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Pass Mark %</div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <input type="number" min="1" max="100" value="70" class="form-input" style="width:60px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;" oninput="updateECMeta('1',this.value)">
+                    <span style="font-size:11px;color:var(--text2);">% to pass</span>
+                  </div>
+                </div>
+                <div style="margin-left:auto;text-align:right;"><div style="font-size:10px;color:var(--text3);">Total Marks</div><div style="font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="ec-total-big-1">0</div></div>
+              </div>
+              <div id="ec-online-1">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;"><div style="font-size:11px;color:var(--text2);font-weight:600;"><span id="ec-qcount-1">0</span> questions</div><button class="btn btn-secondary btn-sm" onclick="addECQuestion('1')">+ Add Question</button></div>
+                <div id="ec-qlist-1" style="display:flex;flex-direction:column;gap:7px;"></div>
+                <div id="ec-noq-1" style="text-align:center;padding:18px;color:var(--text3);font-size:12px;border:1.5px dashed var(--border);border-radius:8px;">No questions yet.</div>
+              </div>
+              <div id="ec-paper-1" style="display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                  <label style="display:flex;flex-direction:column;align-items:center;gap:5px;border:2px dashed var(--border);border-radius:8px;padding:16px;cursor:pointer;background:var(--surface);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                    <input type="file" style="display:none" onchange="handleECFile(this,'ef-name-1')">
+                    <span style="font-size:11px;font-weight:600;color:var(--text2);">📄 Exam File</span>
+                    <span style="font-size:11px;color:var(--text3);" id="ef-name-1">Upload PDF/DOCX</span>
+                  </label>
+                  <label style="display:flex;flex-direction:column;align-items:center;gap:5px;border:2px dashed var(--border);border-radius:8px;padding:16px;cursor:pointer;background:var(--surface);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                    <input type="file" style="display:none" onchange="handleECFile(this,'ak-name-1')">
+                    <span style="font-size:11px;font-weight:600;color:var(--text2);">🔑 Answer Key</span>
+                    <span style="font-size:11px;color:var(--text3);" id="ak-name-1">Upload PDF</span>
+                  </label>
+                </div>
+                <div style="display:flex;gap:10px;">
+                  <div class="fg" style="flex:1;margin-bottom:0;"><label class="fl">Total Marks</label><input type="number" min="1" placeholder="e.g. 20" class="form-input" style="font-family:'JetBrains Mono',monospace;font-weight:700;" oninput="document.getElementById('ec-total-1').textContent=this.value||0;document.getElementById('ec-total-big-1').textContent=this.value||0;updateECMeta('1')"></div>
+                  <div class="fg" style="flex:1;margin-bottom:0;"><label class="fl">Pass Mark %</label><input type="number" min="1" max="100" value="70" class="form-input" style="font-family:'JetBrains Mono',monospace;font-weight:700;" oninput="updateECMeta('1',this.value)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:10px;" onclick="addExamCard()">+ Add Another Exam</button>
+      </div>
+
+    </div>
+
+    <!-- Footer nav -->
+    <div style="padding:16px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--surface);">
+      <button class="btn btn-secondary" id="wiz-back-btn" onclick="wizBack()" style="display:none;">← Back</button>
+      <div style="display:flex;gap:6px;" id="wiz-step-dots">
+        ${[1,2,3,4].map(n=>`<div style="width:7px;height:7px;border-radius:50%;background:${n===1?'var(--accent)':'var(--border)'};transition:background .2s;" id="wdot-${n}"></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="closeModal('mo-add-course')">Cancel</button>
+        <button class="btn btn-primary" id="wiz-next-btn" onclick="wizNext()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 
     <!-- Basic Info -->
     <div class="frow">
@@ -807,6 +1065,100 @@ tbody tr:hover td{color:var(--text);}
     <div id="jt-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;"></div>
 
     <div class="info-box">📊 After saving, the Course Detail page will show compliance stats per job title automatically.</div>
+
+    <!-- ═══ EXAMS SECTION ═══ -->
+    <div style="border-top:1px solid var(--border);margin:18px 0 14px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;">📝 Exams & Assessments</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Add one or more exams. Instructor picks which one to use per session.</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addExamCard()">+ Add Exam</button>
+    </div>
+
+    <div id="exam-cards-list" style="display:flex;flex-direction:column;gap:8px;">
+      <!-- Default exam card — collapsed by default, click header to expand -->
+      <div class="exam-card" id="ec-1">
+        <div class="ec-header" onclick="toggleEC('ec-1')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!document.getElementById('ec-body-1') || document.getElementById('ec-body-1').style.display==='none')this.style.borderColor='var(--border)'">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:700;" id="ec-title-display-1">Final Assessment</div>
+            <div style="display:flex;gap:7px;margin-top:3px;align-items:center;">
+              <span class="badge bb" id="ec-type-badge-1" style="font-size:9px;">💻 Online</span>
+              <span style="font-size:10px;color:var(--text2);" id="ec-meta-1">0 questions · Pass: 70%</span>
+            </div>
+          </div>
+          <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="ec-total-1">0</div>
+          <span style="font-size:10px;color:var(--text3);">marks</span>
+          <span style="color:var(--text3);font-size:13px;transition:transform .2s;" id="ec-arrow-1">▾</span>
+          <button onclick="event.stopPropagation();removeExamCard('ec-1')" style="width:24px;height:24px;border:1px solid rgba(220,38,38,.22);background:rgba(220,38,38,.07);border-radius:6px;cursor:pointer;color:var(--red);font-size:11px;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+        <!-- Expandable body -->
+        <div id="ec-body-1" style="display:none;border:1.5px solid var(--accent);border-top:none;border-radius:0 0 9px 9px;padding:14px 16px;background:var(--surface2);">
+          <!-- Title input -->
+          <div class="fg"><label class="fl">Exam Title *</label>
+            <input class="form-input" placeholder="e.g. Final Assessment" value="Final Assessment" oninput="document.getElementById('ec-title-display-1').textContent=this.value||'Exam 1'" style="font-weight:700;">
+          </div>
+          <!-- Type + Pass mark -->
+          <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Exam Type</div>
+              <div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;">
+                <button onclick="setExamCardType('1','online',this)" style="padding:6px 16px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:var(--accent);color:#fff;">💻 Online</button>
+                <button onclick="setExamCardType('1','paper',this)" style="padding:6px 16px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:transparent;color:var(--text2);">📄 Paper</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Pass Mark %</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="number" min="1" max="100" value="70" class="form-input" style="width:60px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;" oninput="updateECMeta('1',this.value)">
+                <span style="font-size:11px;color:var(--text2);">% to pass</span>
+              </div>
+            </div>
+            <div style="margin-left:auto;text-align:right;">
+              <div style="font-size:10px;color:var(--text3);">Total Marks</div>
+              <div style="font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="ec-total-big-1">0</div>
+            </div>
+          </div>
+          <!-- Online questions -->
+          <div id="ec-online-1">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+              <div style="font-size:11px;color:var(--text2);font-weight:600;"><span id="ec-qcount-1">0</span> questions</div>
+              <button class="btn btn-secondary btn-sm" onclick="addECQuestion('1')">+ Add Question</button>
+            </div>
+            <div id="ec-qlist-1" style="display:flex;flex-direction:column;gap:7px;"></div>
+            <div id="ec-noq-1" style="text-align:center;padding:18px;color:var(--text3);font-size:12px;border:1.5px dashed var(--border);border-radius:8px;">No questions yet.</div>
+          </div>
+          <!-- Paper uploads -->
+          <div id="ec-paper-1" style="display:none;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <div>
+                <div style="font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:600;">📄 Exam File *</div>
+                <label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:2px dashed var(--border);border-radius:8px;padding:16px;cursor:pointer;background:var(--surface);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                  <input type="file" style="display:none" onchange="handleECFile(this,'ef-name-1')">
+                  <span style="font-size:22px;">📄</span>
+                  <span style="font-size:11px;color:var(--text3);" id="ef-name-1">Upload exam PDF/DOCX</span>
+                </label>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:600;">🔑 Answer Key *</div>
+                <label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:2px dashed var(--border);border-radius:8px;padding:16px;cursor:pointer;background:var(--surface);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                  <input type="file" style="display:none" onchange="handleECFile(this,'ak-name-1')">
+                  <span style="font-size:22px;">🔑</span>
+                  <span style="font-size:11px;color:var(--text3);" id="ak-name-1">Upload answer key PDF</span>
+                </label>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <div class="fg" style="flex:1;margin-bottom:0;"><label class="fl">Total Marks</label><input type="number" min="1" placeholder="e.g. 20" class="form-input" style="font-family:'JetBrains Mono',monospace;font-weight:700;" oninput="document.getElementById('ec-total-1').textContent=this.value||0;document.getElementById('ec-total-big-1').textContent=this.value||0;updateECMeta('1')"></div>
+              <div class="fg" style="flex:1;margin-bottom:0;"><label class="fl">Pass Mark %</label><input type="number" min="1" max="100" value="70" class="form-input" style="font-family:'JetBrains Mono',monospace;font-weight:700;" oninput="updateECMeta('1',this.value)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- end exam cards -->
+
     <div class="ma">
       <button class="btn btn-outline" onclick="closeModal('mo-add-course')">Cancel</button>
       <button class="btn btn-primary" onclick="saveCourse()">Save Course</button>
@@ -929,6 +1281,99 @@ tbody tr:hover td{color:var(--text);}
     </div>
     <div class="fg"><label class="fl">Location / Link</label><input class="form-input" placeholder="Training Center A, Room 101"></div>
     <div class="fg"><label class="fl">Max Participants</label><input class="form-input" type="number" placeholder="20"></div>
+
+    <!-- ═══ EXAM & ATTENDANCE SETTINGS ═══ -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;">
+
+      <!-- Section header -->
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface);">
+        <div style="font-size:12px;font-weight:700;">📝 Exam & Attendance Settings</div>
+      </div>
+
+      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Exam selector -->
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;">Select Exam for This Session</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+
+            <label onclick="highlightExam(this)" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border:1.5px solid var(--accent);border-radius:8px;cursor:pointer;background:var(--accent-h);transition:all .14s;">
+              <input type="radio" name="sess-exam" value="1" checked style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;">
+              <div style="flex:1;">
+                <div style="font-size:12px;font-weight:700;">Final Assessment</div>
+                <div style="display:flex;gap:7px;margin-top:3px;align-items:center;">
+                  <span class="badge bb" style="font-size:9px;">💻 Online</span>
+                  <span style="font-size:10px;color:var(--text2);">3 questions · 3 marks</span>
+                  <span style="font-size:10px;font-weight:700;color:var(--green);">Pass: 70%</span>
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);">70%</div>
+                <div style="font-size:9px;color:var(--text3);">pass mark</div>
+              </div>
+            </label>
+
+            <label onclick="highlightExam(this)" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;background:var(--surface);transition:all .14s;">
+              <input type="radio" name="sess-exam" value="2" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;">
+              <div style="flex:1;">
+                <div style="font-size:12px;font-weight:700;">Practical Paper Exam</div>
+                <div style="display:flex;gap:7px;margin-top:3px;align-items:center;">
+                  <span class="badge bo" style="font-size:9px;">📄 Paper</span>
+                  <span style="font-size:10px;color:var(--text2);">20 marks · Files attached</span>
+                  <span style="font-size:10px;font-weight:700;color:var(--green);">Pass: 70%</span>
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);">70%</div>
+                <div style="font-size:9px;color:var(--text3);">pass mark</div>
+              </div>
+            </label>
+
+            <label onclick="highlightExam(this)" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;background:var(--surface);opacity:.6;transition:all .14s;">
+              <input type="radio" name="sess-exam" value="0" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;">
+              <div style="font-size:12px;color:var(--text3);">No exam for this session</div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div style="height:1px;background:var(--border);"></div>
+
+        <!-- Minimum attendance -->
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:3px;">Minimum Attendance to Take Exam (%)</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">Trainee must attend at least this % of the session to be eligible for the exam.</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" min="0" max="100" value="80" id="att-slider"
+              oninput="document.getElementById('att-val').textContent=this.value"
+              style="flex:1;accent-color:var(--accent);">
+            <div style="min-width:52px;text-align:center;">
+              <span id="att-val" style="font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);">80</span>
+              <span style="font-size:12px;color:var(--text2);">%</span>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px;"><span>0% — no requirement</span><span>100% — full attendance</span></div>
+        </div>
+
+        <!-- Divider -->
+        <div style="height:1px;background:var(--border);"></div>
+
+        <!-- Instructor bypass permission -->
+        <div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+            <div style="flex:1;">
+              <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:2px;">Allow Instructor to Bypass Attendance Requirement</div>
+              <div style="font-size:10px;color:var(--text3);line-height:1.5;">If enabled, the instructor can manually allow a trainee who didn't meet the minimum attendance to still take the exam.</div>
+            </div>
+            <button class="tog on" id="bypass-tog" onclick="this.classList.toggle('on');updateBypassLabel(this)" style="flex-shrink:0;margin-top:2px;"></button>
+          </div>
+          <div id="bypass-label" style="margin-top:8px;padding:8px 11px;background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.18);border-radius:7px;font-size:11px;color:var(--green);">
+            ✓ Instructor <strong>can</strong> override attendance — they decide case by case.
+          </div>
+        </div>
+
+      </div>
+    </div>
 
     <div class="info-box">📧 Instructor will receive an email notification with full session details including schedule.</div>
     <div class="ma">
@@ -1243,7 +1688,8 @@ const SIDEBARS = {
     { section:'My Portal', items:[
       { id:'instr-dash', icon:'📊', label:'My Dashboard' },
       { id:'instr-assign', icon:'📌', label:'My Assignments', badge:'2', badgeCls:'' },
-      { id:'instr-content', icon:'📖', label:'Course Content & Exam' },
+      { id:'instr-content', icon:'📖', label:'Course Content' },
+      { id:'instr-quiz', icon:'📝', label:'Quiz & Exam' },
       { id:'instr-attendance', icon:'✅', label:'Attendance & Grades' },
       { id:'instr-history', icon:'📋', label:'Session History' },
     ]},
@@ -1281,21 +1727,23 @@ function selectRole(role, el) {
 function doLogin() {
   const screen = document.getElementById('login-screen');
   screen.style.opacity = '0';
-  screen.style.transition = 'opacity .4s';
+  screen.style.transition = 'opacity .35s';
   setTimeout(() => {
     screen.style.display = 'none';
     const app = document.getElementById('app');
-    app.classList.add('visible');
+    app.style.display = 'flex';
     initApp();
-  }, 400);
+  }, 350);
 }
 
 function logout() {
-  document.getElementById('app').classList.remove('visible');
+  const app = document.getElementById('app');
+  app.style.display = 'none';
   const screen = document.getElementById('login-screen');
-  screen.style.display = 'flex';
   screen.style.opacity = '0';
-  setTimeout(() => { screen.style.opacity = '1'; screen.style.transition = 'opacity .4s'; }, 10);
+  screen.style.display = 'flex';
+  screen.style.transition = 'opacity .35s';
+  setTimeout(() => { screen.style.opacity = '1'; }, 10);
 }
 
 // ══════════════════════════════════════════
@@ -1360,6 +1808,7 @@ function getPageHTML(id) {
     // ── ADMIN PAGES ──────────────────────
     'dash':          () => adminDash(),
     'courses':       () => adminCourses(),
+    'add-course':    () => pgAddCourse(),
     'course-detail':     () => courseDetail(),
     'sess-detail-s-comp':    () => sessDetailCompleted(),
     'sess-detail-s-upcoming':() => sessDetailUpcoming(),
@@ -1380,6 +1829,7 @@ function getPageHTML(id) {
     'instr-dash':        () => instrDash(),
     'instr-assign':      () => instrAssignments(),
     'instr-content':     () => instrContent(),
+    'instr-quiz':        () => instrQuiz(),
     'instr-attendance':  () => instrAttendance(),
     'instr-history':     () => instrHistory(),
     'instr-profile':     () => instrProfile(),
@@ -1450,8 +1900,396 @@ function adminDash() { return `
   </div>
 </div>`; }
 
+function pgAddCourse() {
+  // Re-render wizard UI after page load
+  setTimeout(() => { WIZ_STEP=1; goWizStep(1); }, 30);
+  return `
+<style>
+.wiz-toolbar-btn{padding:3px 8px;border:none;background:transparent;cursor:pointer;border-radius:4px;font-size:12px;color:var(--text2);font-family:inherit;}
+.wiz-toolbar-btn:hover{background:var(--surface3);}
+.wiz-rich{border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:13px;}
+.wiz-rich:focus-within{border-color:var(--accent);}
+.wiz-toolbar{display:flex;flex-wrap:wrap;gap:1px;padding:6px 9px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.wiz-textarea{border:none;width:100%;padding:10px 13px;font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);outline:none;min-height:88px;resize:vertical;}
+.jt-lvl{padding:6px 16px;border-radius:18px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;transition:all .14s;}
+.jt-lvl:hover{border-color:var(--accent);color:var(--accent);}
+</style>
+
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+  <button class="btn btn-secondary btn-sm" onclick="showPage('courses')">← Back to Courses</button>
+  <div style="font-size:18px;font-weight:800;">Add New Course</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 260px;gap:20px;align-items:start;">
+
+  <!-- LEFT: Steps content -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);">
+
+    <!-- Step indicator bar -->
+    <div style="padding:18px 24px;border-bottom:1px solid var(--border);background:var(--surface2);">
+      <div style="display:flex;align-items:center;" id="wiz-steps">
+        ${[
+          {n:1,label:'Basic Info'},
+          {n:2,label:'Target Roles'},
+          {n:3,label:'Materials'},
+          {n:4,label:'Exams'},
+        ].map((s,i,arr)=>`
+        <div style="display:flex;align-items:center;${i<arr.length-1?'flex:1':''}">
+          <div onclick="goWizStep(${s.n})" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <div id="wstep-circle-${s.n}" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;transition:all .2s;
+              ${i===0?'background:var(--accent);color:#fff;border:none':'background:var(--surface);border:2px solid var(--border);color:var(--text3)'};">${s.n}</div>
+            <span id="wstep-label-${s.n}" style="font-size:12px;font-weight:600;white-space:nowrap;transition:color .2s;${i===0?'color:var(--accent)':'color:var(--text3)'};">${s.label}</span>
+          </div>
+          ${i<arr.length-1?`<div id="wstep-line-${s.n}" style="flex:1;height:2px;margin:0 12px;border-radius:2px;background:var(--border);transition:background .3s;"></div>`:''}
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Step content -->
+    <div style="padding:24px;" id="wiz-body">
+
+      <!-- STEP 1: Basic Info -->
+      <div id="wstep-content-1">
+        <div class="frow" style="margin-bottom:13px;">
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Course Title (EN) *</label><input class="form-input" placeholder="e.g. Fire Safety &amp; Emergency Response"></div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Course Title (AR) *</label><input class="form-input" placeholder="سلامة الحرائق" style="direction:rtl;text-align:right;"></div>
+        </div>
+        <div class="fg"><label class="fl">Course ID</label><input class="form-input" placeholder="CRS-10430" style="max-width:220px;"></div>
+        <div class="frow" style="margin-bottom:13px;">
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Course Category *</label>
+            <select class="form-select"><option>HSE</option><option>Safety</option><option>Hazmat</option><option>PPE</option><option>Medical</option><option>Risk</option></select>
+          </div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Sub-Category *</label>
+            <select class="form-select"><option>Safety</option><option>Fire Safety</option><option>Chemical</option><option>First Aid</option><option>General</option></select>
+          </div>
+        </div>
+        <label class="fl">Description (EN) *</label>
+        <div class="wiz-rich">
+          <div class="wiz-toolbar">${['B','I','U','S','&lt;&gt;','""','≡','≡≡','H▾','↔','A▾','🎨'].map(t=>`<button class="wiz-toolbar-btn">${t}</button>`).join('')}</div>
+          <textarea class="wiz-textarea" placeholder="Course objectives and overview in English..."></textarea>
+        </div>
+        <label class="fl">Description (AR) *</label>
+        <div class="wiz-rich">
+          <div class="wiz-toolbar">${['B','I','U','S','&lt;&gt;','""','≡','≡≡','H▾','↔','A▾','🎨'].map(t=>`<button class="wiz-toolbar-btn">${t}</button>`).join('')}</div>
+          <textarea class="wiz-textarea" placeholder="أهداف الكورس بالعربي..." style="direction:rtl;"></textarea>
+        </div>
+        <div class="frow" style="margin-bottom:13px;">
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Duration (hours)</label><input class="form-input" type="number" placeholder="8"></div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Cert. Validity (months)</label><input class="form-input" type="number" placeholder="24"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;">
+          <div><div style="font-size:13px;font-weight:600;">Certificate</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Issue a certificate upon completion</div></div>
+          <button class="tog on" onclick="this.classList.toggle('on')"></button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Target Roles -->
+      <div id="wstep-content-2" style="display:none;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Select which job roles this training applies to. Choose between Mandatory, Recommended or Optional for each.</div>
+        <div style="display:flex;align-items:center;gap:9px;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;padding:9px 13px;margin-bottom:14px;">
+          <span style="font-size:15px;color:var(--text3);">🔍</span>
+          <input style="border:none;background:transparent;outline:none;font-family:inherit;font-size:13px;color:var(--text);flex:1;" placeholder="Search roles..." oninput="filterJTSearch(this.value)">
+        </div>
+        <div style="display:flex;flex-direction:column;" id="jt-list-v2">
+          ${[
+            {title:'HSE Manager',count:5},
+            {title:'Safety Engineer',count:8},
+            {title:'HSE Supervisor',count:6},
+            {title:'Safety Officer',count:7},
+            {title:'Operations Lead',count:10},
+            {title:'Maintenance Tech',count:12},
+            {title:'Logistics Driver',count:8},
+            {title:'Lab Technician',count:4},
+            {title:'Site Operator',count:9},
+          ].map((r,i)=>`
+          <div class="jt-row-v2" style="display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);">
+            <div style="width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;flex-shrink:0;transition:all .14s;" id="jt-icon-${i}" onclick="toggleJTSelect(${i})">⊗</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;">${r.title}</div>
+              <div style="font-size:11px;color:var(--text3);">${r.count} staff</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="jt-lvl" id="jt-m-${i}" onclick="setJTLevel(${i},'mandatory',this)">Mandatory</button>
+              <button class="jt-lvl" id="jt-r-${i}" onclick="setJTLevel(${i},'recommended',this)">Recommendation</button>
+              <button class="jt-lvl" id="jt-o-${i}" onclick="setJTLevel(${i},'optional',this)">Optional</button>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- STEP 3: Materials -->
+      <div id="wstep-content-3" style="display:none;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Upload materials for trainees. Set when each file becomes visible.</div>
+        <div style="display:grid;grid-template-columns:230px 1fr;gap:14px;min-height:300px;">
+          <!-- Upload panel -->
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:12px;font-weight:700;">Upload New File</div>
+            <div style="font-size:10px;color:var(--text3);">PDF, PPT, DOCX, MP4 — max 200MB</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              ${['📕 PDF','📊 PPT','🎬 Video','📘 Word','📄 Other'].map((tp,ti)=>`<div onclick="selMatType2(this)" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 5px;border:1.5px solid ${ti===0?'var(--accent)':'var(--border)'};border-radius:7px;cursor:pointer;flex:1;background:${ti===0?'var(--accent-h)':'var(--surface)'};transition:all .14s;text-align:center;">
+                <span style="font-size:14px;">${tp.split(' ')[0]}</span>
+                <span style="font-size:9px;font-weight:700;color:${ti===0?'var(--accent)':'var(--text3)'};">${tp.split(' ')[1]}</span>
+              </div>`).join('')}
+            </div>
+            <div class="fg" style="margin-bottom:0;"><label class="fl">Title *</label><input class="form-input" id="mat-title-wiz" placeholder="Module 1 — Intro"></div>
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:600;">Visibility</div>
+              ${[{v:'before',ic:'⏰',lbl:'Before Session'},{v:'during',ic:'▶️',lbl:'During Session'},{v:'after',ic:'🎯',lbl:'After — Pre-Quiz'}].map((o,oi)=>`
+              <div onclick="selMatVis2(this)" style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1.5px solid ${oi===1?'var(--accent)':'var(--border)'};border-radius:7px;cursor:pointer;background:${oi===1?'var(--accent-h)':'var(--surface)'};margin-bottom:4px;transition:all .14s;">
+                <span style="font-size:12px;">${o.ic}</span>
+                <span style="font-size:11px;font-weight:500;flex:1;">${o.lbl}</span>
+                <div style="width:14px;height:14px;border-radius:50%;border:2px solid ${oi===1?'var(--accent)':'var(--border)'};display:flex;align-items:center;justify-content:center;">${oi===1?'<div style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></div>':''}</div>
+              </div>`).join('')}
+            </div>
+            <label style="display:flex;flex-direction:column;align-items:center;gap:5px;border:2px dashed var(--border);border-radius:8px;padding:14px;cursor:pointer;background:var(--surface);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              <input type="file" style="display:none" onchange="addWizMat2(this)">
+              <span style="font-size:20px;opacity:.35;">☁️</span>
+              <span style="font-size:11px;color:var(--text3);">Click or drag & drop</span>
+            </label>
+            <button class="btn btn-primary btn-sm btn-full" onclick="document.querySelector('#wstep-content-3 label input').click()">+ Add File</button>
+          </div>
+          <!-- Files list -->
+          <div id="mat-wiz-list2" style="display:flex;flex-direction:column;gap:8px;">
+            ${[
+              {ic:'📕',name:'Module 1 — Introduction',size:'3.2 MB',vis:'Before Session',vc:'var(--accent)',vb:'var(--accent-h)'},
+              {ic:'📊',name:'Session Slides',size:'5.8 MB',vis:'During Session',vc:'var(--blue)',vb:'rgba(29,78,216,.08)'},
+              {ic:'📕',name:'Post-Session Quiz Sheet',size:'0.4 MB',vis:'After — Pre-Quiz',vc:'var(--orange)',vb:'rgba(217,119,6,.08)'},
+            ].map(m=>`
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+              <span style="font-size:18px;flex-shrink:0;">${m.ic}</span>
+              <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">${m.name}</div><div style="font-size:10px;color:var(--text3);">${m.size}</div></div>
+              <span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:7px;background:${m.vb};color:${m.vc};white-space:nowrap;">${m.vis}</span>
+              <button onclick="this.closest('div').remove()" style="width:22px;height:22px;border:1px solid rgba(220,38,38,.2);background:rgba(220,38,38,.06);border-radius:5px;cursor:pointer;color:var(--red);font-size:11px;">✕</button>
+            </div>`).join('')}
+            <div id="mat-wiz-list2-items"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: Exams -->
+      <div id="wstep-content-4" style="display:none;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Add one or more exams. Instructor picks which one to use per session.</div>
+        <div id="exam-cards-list2" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+          <div class="exam-card" id="ec2-1">
+            <div onclick="toggleEC2('ec2-1')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(document.getElementById('ecb2-1')?.style.display==='none')this.style.borderColor='var(--border)'">
+              <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">1</div>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:700;" id="ect2-1">Final Assessment</div>
+                <div style="display:flex;gap:7px;margin-top:3px;"><span class="badge bb" style="font-size:9px;">💻 Online</span><span style="font-size:10px;color:var(--text2);" id="ecm2-1">0 questions · Pass: 70%</span></div>
+              </div>
+              <span style="font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="ecto2-1">0</span>
+              <span style="font-size:10px;color:var(--text3);">marks</span>
+              <span style="color:var(--text3);font-size:12px;" id="eca2-1">▾</span>
+              <button onclick="event.stopPropagation();this.closest('.exam-card').remove()" style="width:24px;height:24px;border:1px solid rgba(220,38,38,.22);background:rgba(220,38,38,.07);border-radius:6px;cursor:pointer;color:var(--red);font-size:11px;">✕</button>
+            </div>
+            <div id="ecb2-1" style="display:none;border:1.5px solid var(--accent);border-top:none;border-radius:0 0 9px 9px;padding:14px 16px;background:var(--surface2);">
+              <div class="fg"><label class="fl">Exam Title *</label><input class="form-input" value="Final Assessment" oninput="document.getElementById('ect2-1').textContent=this.value||'Exam 1'" style="font-weight:700;"></div>
+              <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:13px;flex-wrap:wrap;">
+                <div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Exam Type</div>
+                  <div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;">
+                    <button onclick="setExamCardType2('1','online',this)" style="padding:6px 16px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:var(--accent);color:#fff;">💻 Online</button>
+                    <button onclick="setExamCardType2('1','paper',this)" style="padding:6px 16px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:transparent;color:var(--text2);">📄 Paper</button>
+                  </div>
+                </div>
+                <div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Pass Mark %</div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <input type="number" min="1" max="100" value="70" class="form-input" style="width:58px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;" oninput="document.getElementById('ecm2-1').textContent='0 questions · Pass: '+this.value+'%'">
+                    <span style="font-size:11px;color:var(--text2);">% to pass</span>
+                  </div>
+                </div>
+                <div style="margin-left:auto;text-align:right;"><div style="font-size:10px;color:var(--text3);">Total Marks</div><div style="font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);" id="ectob2-1">0</div></div>
+              </div>
+              <div id="eco2-1">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;"><div style="font-size:11px;color:var(--text2);font-weight:600;"><span id="ecqc2-1">0</span> questions</div><button class="btn btn-secondary btn-sm" onclick="addEC2Question('1')">+ Add Question</button></div>
+                <div id="ecql2-1" style="display:flex;flex-direction:column;gap:7px;"></div>
+                <div id="ecnq2-1" style="text-align:center;padding:16px;color:var(--text3);font-size:12px;border:1.5px dashed var(--border);border-radius:8px;">No questions yet.</div>
+              </div>
+              <div id="ecp2-1" style="display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                  <label style="display:flex;flex-direction:column;align-items:center;gap:5px;border:2px dashed var(--border);border-radius:8px;padding:14px;cursor:pointer;background:var(--surface);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><input type="file" style="display:none"><span style="font-size:11px;font-weight:600;color:var(--text2);">📄 Exam File</span><span style="font-size:11px;color:var(--text3);">Upload PDF/DOCX</span></label>
+                  <label style="display:flex;flex-direction:column;align-items:center;gap:5px;border:2px dashed var(--border);border-radius:8px;padding:14px;cursor:pointer;background:var(--surface);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><input type="file" style="display:none"><span style="font-size:11px;font-weight:600;color:var(--text2);">🔑 Answer Key</span><span style="font-size:11px;color:var(--text3);">Upload PDF</span></label>
+                </div>
+                <div style="display:flex;gap:10px;">
+                  <div class="fg" style="flex:1;margin-bottom:0;"><label class="fl">Total Marks</label><input type="number" min="1" placeholder="e.g. 20" class="form-input" style="font-family:'JetBrains Mono',monospace;font-weight:700;"></div>
+                  <div class="fg" style="flex:1;margin-bottom:0;"><label class="fl">Pass Mark %</label><input type="number" min="1" max="100" value="70" class="form-input" style="font-family:'JetBrains Mono',monospace;font-weight:700;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="addEC2Card()">+ Add Another Exam</button>
+      </div>
+
+    </div><!-- end wiz-body -->
+
+    <!-- Footer nav -->
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);">
+      <button class="btn btn-secondary" id="wiz-back-btn" onclick="wizBack()" style="display:none;">← Back</button>
+      <div style="display:flex;gap:6px;" id="wiz-step-dots">
+        ${[1,2,3,4].map(n=>`<div style="width:7px;height:7px;border-radius:50%;background:${n===1?'var(--accent)':'var(--border)'};transition:background .2s;" id="wdot-${n}"></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="showPage('courses')">Cancel</button>
+        <button class="btn btn-primary" id="wiz-next-btn" onclick="wizNext2()">Next →</button>
+      </div>
+    </div>
+
+  </div><!-- end left -->
+
+  <!-- RIGHT: Summary sidebar -->
+  <div style="display:flex;flex-direction:column;gap:12px;position:sticky;top:16px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Steps</div>
+      ${[{n:1,ic:'📋',lbl:'Basic Info'},{n:2,ic:'🎯',lbl:'Target Roles'},{n:3,ic:'📁',lbl:'Materials'},{n:4,ic:'📝',lbl:'Exams'}].map(s=>`
+      <div onclick="goWizStep(${s.n})" style="display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:all .14s;background:${s.n===1?'var(--accent-h)':'transparent'};" id="wiz-side-${s.n}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${s.n===1?'var(--accent-h)':'transparent'}'">
+        <div style="width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;background:${s.n===1?'var(--accent)':'var(--surface2)'};color:${s.n===1?'#fff':'var(--text3)'};border:${s.n===1?'none':'1.5px solid var(--border)'};" id="ws-num-${s.n}">${s.n}</div>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:600;color:${s.n===1?'var(--accent)':'var(--text2)'};" id="ws-lbl-${s.n}">${s.lbl}</div></div>
+        <span style="font-size:11px;color:var(--text3);" id="ws-chk-${s.n}"></span>
+      </div>`).join('')}
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Tips</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;" id="wiz-tip">
+        🔹 Fill in the course title in both English and Arabic.<br>
+        🔹 Course ID helps you track it across the system.<br>
+        🔹 Certificate validity starts from session completion date.
+      </div>
+    </div>
+  </div>
+
+</div>`;
+}
+
+// Wizard v2 helpers (for full-page version)
+function wizNext2() {
+  if(WIZ_STEP < WIZ_TOTAL) goWizStep(WIZ_STEP+1);
+  else { showPage('courses'); showToast('Course saved successfully!','g'); }
+}
+
+function toggleEC2(id) {
+  const num = id.replace('ec2-','');
+  const body  = document.getElementById('ecb2-'+num);
+  const arrow = document.getElementById('eca2-'+num);
+  const hdr   = body?.previousElementSibling;
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+  if(hdr)   hdr.style.borderRadius = open ? '9px' : '9px 9px 0 0';
+  if(hdr)   hdr.style.borderColor  = open ? 'var(--border)' : 'var(--accent)';
+}
+
+let EC2_COUNT = 1;
+function addEC2Card() {
+  EC2_COUNT++;
+  const id = String(EC2_COUNT);
+  const list = document.getElementById('exam-cards-list2');
+  if(!list) return;
+  const div = document.createElement('div');
+  div.className = 'exam-card'; div.id = 'ec2-'+id;
+  div.innerHTML = `<div onclick="toggleEC2('ec2-${id}')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .14s;">
+    <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">${id}</div>
+    <div style="flex:1;"><div style="font-size:12px;font-weight:700;" id="ect2-${id}">New Exam ${id}</div><div style="font-size:10px;color:var(--text2);">Online · Pass: 70%</div></div>
+    <span style="color:var(--text3);font-size:12px;" id="eca2-${id}">▾</span>
+    <button onclick="event.stopPropagation();this.closest('.exam-card').remove()" style="width:24px;height:24px;border:1px solid rgba(220,38,38,.22);background:rgba(220,38,38,.07);border-radius:6px;cursor:pointer;color:var(--red);font-size:11px;">✕</button>
+  </div>
+  <div id="ecb2-${id}" style="display:block;border:1.5px solid var(--accent);border-top:none;border-radius:0 0 9px 9px;padding:14px 16px;background:var(--surface2);">
+    <div class="fg"><label class="fl">Exam Title *</label><input class="form-input" placeholder="e.g. Retake Assessment" oninput="document.getElementById('ect2-${id}').textContent=this.value||'Exam ${id}'" style="font-weight:700;"></div>
+    <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Exam Type</div>
+        <div style="display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;">
+          <button onclick="setExamCardType2('${id}','online',this)" style="padding:6px 14px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:var(--accent);color:#fff;">💻 Online</button>
+          <button onclick="setExamCardType2('${id}','paper',this)" style="padding:6px 14px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:transparent;color:var(--text2);">📄 Paper</button>
+        </div>
+      </div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Pass Mark %</div>
+        <div style="display:flex;align-items:center;gap:6px;"><input type="number" min="1" max="100" value="70" class="form-input" style="width:58px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;"><span style="font-size:11px;color:var(--text2);">% to pass</span></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;"><div style="font-size:11px;color:var(--text2);font-weight:600;">0 questions</div><button class="btn btn-secondary btn-sm" onclick="addEC2Question('${id}')">+ Add Question</button></div>
+    <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;border:1.5px dashed var(--border);border-radius:8px;">No questions yet.</div>
+  </div>`;
+  list.appendChild(div);
+}
+
+let EC2_Q_COUNT = 0;
+function addEC2Question(ecId) {
+  EC2_Q_COUNT++;
+  const qId = 'ec2q-'+ecId+'-'+EC2_Q_COUNT;
+  const list = document.getElementById('ecql2-'+ecId);
+  const noq  = document.getElementById('ecnq2-'+ecId);
+  if(!list) return;
+  if(noq) noq.style.display='none';
+  const div = document.createElement('div');
+  div.id = qId;
+  div.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;';
+  div.innerHTML=`<div style="display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px solid var(--border);">
+    <div style="width:21px;height:21px;border-radius:50%;background:var(--accent);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">Q${EC2_Q_COUNT}</div>
+    <select class="form-select" style="width:auto;font-size:11px;padding:4px 8px;" onchange="changeEC2Type('${qId}',this.value)"><option value="mcq">Multiple Choice</option><option value="truefalse">True / False</option><option value="short">Short Answer</option></select>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);">Marks:<input type="number" min="1" max="99" value="1" class="form-input" style="width:44px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:4px 6px;"></div>
+    <button onclick="this.closest('div').parentElement.remove()" style="width:23px;height:23px;border:1px solid rgba(220,38,38,.22);background:rgba(220,38,38,.07);border-radius:5px;cursor:pointer;color:var(--red);font-size:11px;">✕</button>
+  </div>
+  <div style="padding:11px 13px;" id="${qId}-body">
+    <input class="form-input" placeholder="Type your question here..." style="margin-bottom:8px;font-weight:600;">
+    <div id="${qId}-opts">
+      ${['A','B','C','D'].map((l,i)=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><div onclick="setEC2Correct('${qId}',${i})" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border);cursor:pointer;flex-shrink:0;transition:all .14s;" class="ec2-radio" id="${qId}-r${i}"></div><input class="form-input" placeholder="Option ${l}" style="flex:1;font-size:12px;padding:7px 10px;"></div>`).join('')}
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;">☝ Click circle to mark correct answer</div>
+    </div>
+  </div>`;
+  list.appendChild(div);
+  const cnt = document.getElementById('ecqc2-'+ecId);
+  if(cnt) cnt.textContent = list.querySelectorAll(':scope > div').length;
+}
+
+function setEC2Correct(qId, idx) {
+  document.querySelectorAll(`#${qId}-opts .ec2-radio`).forEach((r,i)=>{
+    r.style.background = i===idx?'var(--green)':'transparent';
+    r.style.borderColor = i===idx?'var(--green)':'var(--border)';
+  });
+}
+
+function changeEC2Type(qId, type) {
+  const opts = document.getElementById(qId+'-opts');
+  if(!opts) return;
+  if(type==='mcq') {
+    opts.innerHTML = ['A','B','C','D'].map((l,i)=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;"><div onclick="setEC2Correct('${qId}',${i})" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--border);cursor:pointer;flex-shrink:0;" class="ec2-radio" id="${qId}-r${i}"></div><input class="form-input" placeholder="Option ${l}" style="flex:1;font-size:12px;padding:7px 10px;"></div>`).join('')+'<div style="font-size:10px;color:var(--text3);margin-top:3px;">☝ Click circle to mark correct answer</div>';
+  } else if(type==='truefalse') {
+    opts.innerHTML=`<div style="display:flex;gap:9px;"><div onclick="this.style.borderColor='var(--green)';this.style.color='var(--green)';this.nextSibling.style.borderColor='var(--border)';this.nextSibling.style.color='var(--text2)';" style="flex:1;padding:9px;border:2px solid var(--border);border-radius:7px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;transition:all .14s;">✓ True</div><div onclick="this.style.borderColor='var(--red)';this.style.color='var(--red)';this.previousSibling.style.borderColor='var(--border)';this.previousSibling.style.color='var(--text2)';" style="flex:1;padding:9px;border:2px solid var(--border);border-radius:7px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;transition:all .14s;">✗ False</div></div>`;
+  } else {
+    opts.innerHTML=`<textarea class="form-input" style="min-height:56px;resize:vertical;" placeholder="Model answer for grading reference..."></textarea><div style="font-size:10px;color:var(--text3);margin-top:3px;">Not shown to trainees</div>`;
+  }
+}
+
+function setExamCardType2(id, type, btn) {
+  btn.parentElement.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='var(--text2)';});
+  btn.style.background='var(--accent)';btn.style.color='#fff';
+  const online = document.getElementById('eco2-'+id);
+  const paper  = document.getElementById('ecp2-'+id);
+  if(online) online.style.display = type==='online'?'block':'none';
+  if(paper)  paper.style.display  = type==='paper' ?'block':'none';
+}
+
+function selMatType2(el) {
+  el.parentElement.querySelectorAll('div').forEach(d=>{d.style.borderColor='var(--border)';d.style.background='var(--surface)';d.querySelector('span:last-child').style.color='var(--text3)';});
+  el.style.borderColor='var(--accent)';el.style.background='var(--accent-h)';el.querySelector('span:last-child').style.color='var(--accent)';
+}
+
+function selMatVis2(el) {
+  el.parentElement.querySelectorAll('div[style]').forEach(d=>{d.style.borderColor='var(--border)';d.style.background='var(--surface)';const dot=d.querySelector('div');if(dot)dot.innerHTML='';});
+  el.style.borderColor='var(--accent)';el.style.background='var(--accent-h)';
+  const dot=el.querySelector('div');if(dot)dot.innerHTML='<div style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></div>';
+}
+
+function addWizMat2(input) {
+  const f=input.files[0];if(!f)return;
+  const list=document.getElementById('mat-wiz-list2-items');if(!list)return;
+  const d=document.createElement('div');
+  d.style.cssText='display:flex;align-items:center;gap:9px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;';
+  d.innerHTML=`<span style="font-size:18px;flex-shrink:0;">📎</span><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">${f.name}</div><div style="font-size:10px;color:var(--text3);">${(f.size/1024/1024).toFixed(1)} MB</div></div><span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--accent-h);color:var(--accent);">During Session</span><button onclick="this.closest('div').remove()" style="width:22px;height:22px;border:1px solid rgba(220,38,38,.2);background:rgba(220,38,38,.06);border-radius:5px;cursor:pointer;color:var(--red);font-size:11px;">✕</button>`;
+  list.appendChild(d);showToast(f.name+' added','g');
+}
+
 function adminCourses() { return `
-<div class="ph"><div class="pt">Courses List <small>Manage all training courses</small></div><button class="btn btn-primary" onclick="openModal('mo-add-course');initJTList()">+ Add Course</button></div>
+<div class="ph"><div class="pt">Courses List <small>Manage all training courses</small></div><button class="btn btn-primary" onclick="WIZ_STEP=1;showPage('add-course')">+ Add Course</button></div>
 <div class="tw"><div class="tt"><div class="sb">🔍 <input type="text" placeholder="Search courses..."></div><button class="btn btn-outline btn-sm">Filter ▾</button></div>
 <table><thead><tr><th>ID</th><th>Course Title</th><th>Category</th><th>Duration</th><th>Target Roles</th><th>Status</th><th>Actions</th></tr></thead><tbody>
 ${[
@@ -1627,7 +2465,179 @@ function courseDetail() {
       <button class="btn btn-sm btn-primary" onclick="openModal('mo-add-session')">⚡ Create Session &amp; Enroll</button>
     </div>
   </div>
+</div>
+
+<!-- ═══ COURSE MATERIALS ═══ -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:16px;">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:13px;font-weight:700;">📁 Course Materials &amp; Resources</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:var(--text3);">5 files</span>
+      <button class="btn btn-primary btn-sm" onclick="showToast('Upload material','b')">+ Upload File</button>
+    </div>
+  </div>
+  <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
+
+    ${[
+      { timing:'before', icon:'⏰', label:'Before Session', color:'var(--accent)', bg:'var(--accent-h)',
+        files:[
+          {type:'📕', name:'Module 1 — Introduction to Fire Safety', size:'3.2 MB', ext:'PDF'},
+          {type:'📊', name:'Session Overview Slides', size:'5.8 MB', ext:'PPT'},
+        ]},
+      { timing:'during', icon:'▶️', label:'During Session', color:'var(--blue)', bg:'rgba(37,99,199,.08)',
+        files:[
+          {type:'📘', name:'Practical Drill Reference Guide', size:'1.1 MB', ext:'DOCX'},
+          {type:'🎬', name:'PASS Technique Demo Video', size:'48 MB', ext:'MP4'},
+        ]},
+      { timing:'after', icon:'🎯', label:'After — Pre-Quiz', color:'var(--orange)', bg:'rgba(217,119,6,.08)',
+        files:[
+          {type:'📕', name:'Post-Session Assessment Sheet', size:'0.4 MB', ext:'PDF'},
+        ]},
+    ].map(group=>`
+    <div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="font-size:13px;">${group.icon}</span>
+        <span style="font-size:11px;font-weight:700;color:${group.color};">${group.label}</span>
+        <span style="font-size:10px;color:var(--text3);">${group.files.length} file${group.files.length>1?'s':''}</span>
+      </div>
+      ${group.files.map(f=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
+        <span style="font-size:20px;flex-shrink:0;">${f.type}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;">${f.name}</div>
+          <div style="font-size:10px;color:var(--text3);">${f.size} · ${f.ext}</div>
+        </div>
+        <span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:8px;background:${group.bg};color:${group.color};white-space:nowrap;">${group.icon} ${group.label}</span>
+        <button class="btn btn-secondary btn-sm" onclick="showToast('Downloading...','b')" style="font-size:10px;">📥</button>
+      </div>`).join('')}
+    </div>`).join('')}
+
+  </div>
+</div>
+
+<!-- ═══ EXAMS & ASSESSMENTS VIEW ═══ -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:16px;">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:13px;font-weight:700;">📝 Exams & Assessments</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px;">2 exams available · Instructor selects one per session</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('mo-add-course');showToast('Open course to add exams','b')">+ Add Exam</button>
+  </div>
+  <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px;">
+
+    <!-- Exam 1 — Online -->
+    <div style="border:1.5px solid var(--border);border-radius:9px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);">
+        <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;">1</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;">Final Assessment</div>
+          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+            <span class="badge bb">💻 Online</span>
+            <span style="font-size:10px;color:var(--text2);">3 questions · Total: 3 marks</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:rgba(22,163,74,.10);color:var(--green);">Pass: 70%</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:7px;">
+          <button class="btn btn-secondary btn-sm" onclick="toggleExamDetail('ed-1')">View Questions ▾</button>
+          <button class="btn btn-secondary btn-sm" onclick="showToast('Edit exam','b')">✏️</button>
+        </div>
+      </div>
+      <div id="ed-1" style="display:none;padding:14px 16px;background:var(--surface);">
+        ${[
+          {num:1,type:'Short Answer',   text:'What does SDS stand for?',                                 marks:1, opts:[], correct:null},
+          {num:2,type:'Multiple Choice',text:'Which PPE is required when handling corrosive chemicals?',marks:1, opts:['Safety glasses only','Gloves and safety glasses','Full face shield, chemical gloves, and apron','Regular work gloves'], correct:2},
+          {num:3,type:'True / False',   text:'GHS labels are required on all hazardous chemical containers.',marks:1,opts:['True','False'],correct:0},
+        ].map(q=>`
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px;">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">${q.num}</div>
+            <span style="background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--text2);">${q.type}</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--text2);">Marks: <strong>${q.marks}</strong></span>
+          </div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:9px;">${q.text}</div>
+          ${q.type==='Short Answer'?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-size:12px;color:var(--text3);font-style:italic;">Model answer for grading reference...</div>`:''}
+          ${q.type==='Multiple Choice'?q.opts.map((o,i)=>`
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${i===q.correct?'var(--green)':'var(--border)'};background:${i===q.correct?'var(--green)':'transparent'};flex-shrink:0;display:flex;align-items:center;justify-content:center;">${i===q.correct?'<div style="width:7px;height:7px;border-radius:50%;background:#fff"></div>':''}</div>
+              <div style="flex:1;padding:7px 10px;border:1.5px solid ${i===q.correct?'var(--green)':'var(--border)'};border-radius:6px;font-size:12px;background:${i===q.correct?'rgba(22,163,74,.06)':'var(--surface)'};">${o}</div>
+              ${i===q.correct?'<span class="badge bg" style="font-size:9px;">✓ Correct</span>':''}
+            </div>`).join(''):''}
+          ${q.type==='True / False'?`
+            <div style="display:flex;gap:9px;">
+              <div style="flex:1;padding:8px;border:2px solid ${q.correct===0?'var(--green)':'var(--border)'};border-radius:7px;text-align:center;font-size:12px;font-weight:700;color:${q.correct===0?'var(--green)':'var(--text2)'};background:${q.correct===0?'rgba(22,163,74,.06)':'var(--surface)'};">✓ True ${q.correct===0?'<span class="badge bg" style="font-size:9px;margin-left:3px">Correct</span>':''}</div>
+              <div style="flex:1;padding:8px;border:2px solid ${q.correct===1?'var(--red)':'var(--border)'};border-radius:7px;text-align:center;font-size:12px;font-weight:700;color:${q.correct===1?'var(--red)':'var(--text2)'};background:${q.correct===1?'rgba(220,38,38,.06)':'var(--surface)'};">✗ False</div>
+            </div>`:''}
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Exam 2 — Paper -->
+    <div style="border:1.5px solid var(--border);border-radius:9px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);">
+        <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;">2</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;">Practical Paper Exam</div>
+          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+            <span class="badge bo">📄 Paper</span>
+            <span style="font-size:10px;color:var(--text2);">Total: 20 marks</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:rgba(22,163,74,.10);color:var(--green);">Pass: 70%</span>
+            <span style="font-size:10px;color:var(--text2);">· Files attached</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:7px;">
+          <button class="btn btn-success btn-sm" onclick="showToast('Downloading exam file','b')">📥 Exam File</button>
+          <button class="btn btn-success btn-sm" onclick="showToast('Downloading answer key','b')">🔑 Answer Key</button>
+          <button class="btn btn-secondary btn-sm" onclick="showToast('Edit exam','b')">✏️</button>
+        </div>
+      </div>
+      <div style="padding:12px 16px;background:var(--surface);display:flex;gap:18px;">
+        <div style="text-align:center;padding:10px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;"><div style="font-size:18px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;">20</div><div style="font-size:10px;color:var(--text3);">Total Marks</div></div>
+        <div style="text-align:center;padding:10px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;"><div style="font-size:18px;font-weight:800;color:var(--green);font-family:'JetBrains Mono',monospace;">14</div><div style="font-size:10px;color:var(--text3);">Marks to Pass</div></div>
+        <div style="text-align:center;padding:10px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;"><div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;">70%</div><div style="font-size:10px;color:var(--text3);">Pass Rate</div></div>
+      </div>
+    </div>
+
+  </div>
 </div>`;
+}
+
+function highlightExam(label) {
+  const container = label.closest('div');
+  container.querySelectorAll('label').forEach(l => {
+    l.style.borderColor = 'var(--border)';
+    l.style.background  = 'var(--surface)';
+    l.style.opacity     = l.querySelector('input').value === '0' ? '0.6' : '1';
+  });
+  const radio = label.querySelector('input');
+  if(radio.value !== '0') {
+    label.style.borderColor = 'var(--accent)';
+    label.style.background  = 'var(--accent-h)';
+  }
+}
+
+function updateBypassLabel(tog) {
+  const lbl = document.getElementById('bypass-label');
+  if(!lbl) return;
+  if(tog.classList.contains('on')) {
+    lbl.style.background   = 'rgba(22,163,74,.07)';
+    lbl.style.borderColor  = 'rgba(22,163,74,.18)';
+    lbl.style.color        = 'var(--green)';
+    lbl.innerHTML = '✓ Instructor <strong>can</strong> override attendance — they decide case by case.';
+  } else {
+    lbl.style.background   = 'rgba(220,38,38,.06)';
+    lbl.style.borderColor  = 'rgba(220,38,38,.18)';
+    lbl.style.color        = 'var(--red)';
+    lbl.innerHTML = '✗ Instructor <strong>cannot</strong> override — system enforces attendance strictly.';
+  }
+}
+
+function toggleExamDetail(id) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  const btn = el.previousElementSibling?.querySelector('button');
+  if(btn && btn.textContent.includes('View')) btn.textContent = el.style.display==='none' ? 'View Questions ▾' : 'Hide Questions ▴';
 }
 
 function adminSessions() { return `
@@ -2077,371 +3087,308 @@ function instrDash() { return `
 
 function instrAssignments() { return `
 <div class="ph"><div class="pt">My Assignments <small>Review and accept session assignments</small></div></div>
-<div class="error-box" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">📌 You have <strong>2 new assignments</strong> waiting for your response. Please review and accept or decline.</div>
+<div class="ib-w" style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">📌 <strong>2 new assignments</strong> waiting for your response.</div>
 
-<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Pending Assignments</div>
+${[
+  {title:'Fire Safety & Emergency Response',date:'May 24, 2026',time:'09:00–17:00',loc:'Training Center A, Room 101',type:'Hybrid',typecls:'g',enrolled:20,note:'Please review fire safety slides 48h before session.',exam:'Final Assessment',examType:'online',examQ:3,examPass:70,attMin:80,bypass:true,
+   mats:[ {icon:'📕',name:'Module 1 — Introduction',size:'3.2 MB',vis:'Before Session',viscol:'var(--accent)'}, {icon:'📊',name:'Session Slides',size:'5.8 MB',vis:'During Session',viscol:'var(--blue)'}, {icon:'📕',name:'Post-Session Quiz Sheet',size:'0.4 MB',vis:'After — Pre-Quiz',viscol:'var(--orange)'} ],
+  },
+  {title:'First Aid & CPR Certification',date:'Jun 5, 2026',time:'09:00–13:00',loc:'Medical Training Room',type:'In-Person',typecls:'o',enrolled:15,note:'',exam:'Practical Paper Exam',examType:'paper',examMarks:20,examPass:70,attMin:100,bypass:false,mats:[]},
+].map((s,si)=>`
+<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;">
 
-<div class="inv-card" style="margin-bottom:16px">
-  <div class="inv-header"><span class="inv-badge">NEW — Awaiting Response</span><span class="inv-title">Fire Safety & Emergency Response</span></div>
-  <div class="inv-details">
-    <div class="inv-detail-item"><div class="inv-detail-label">Date</div><div class="inv-detail-val">📅 May 24, 2026</div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Time</div><div class="inv-detail-val">⏰ 09:00 – 17:00</div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Location</div><div class="inv-detail-val">📍 Training Center A, Room 101</div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Type</div><div class="inv-detail-val"><span class="badge g">Hybrid</span></div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Enrolled</div><div class="inv-detail-val">👥 20 participants</div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Assigned By</div><div class="inv-detail-val">👔 Zaid Hadi (Admin)</div></div>
+  <!-- Assignment header -->
+  <div style="padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2);">
+    <span class="badge bo" style="font-size:9px;">📌 Awaiting Response</span>
+    <span style="font-size:14px;font-weight:800;flex:1;">${s.title}</span>
+    <button class="btn btn-s btn-sm" onclick="declineAssign(this)">✗ Decline</button>
+    <button class="btn btn-p btn-sm" onclick="openModal('mo-accept-assign');showToast('Assignment accepted!','g')">✓ Accept</button>
   </div>
-  <div class="info-box" style="margin:10px 0">📝 Admin Notes: Please review the fire safety module slides before session. Materials will be ready in the system 48h prior.</div>
-  <div class="inv-actions">
-    <button class="btn btn-red" onclick="declineAssign(this)">✗ Decline</button>
-    <button class="btn btn-primary" onclick="openModal('mo-accept-assign')">✓ Accept Assignment</button>
-  </div>
-</div>
 
-<div class="inv-card" style="margin-bottom:24px">
-  <div class="inv-header"><span class="inv-badge">NEW — Awaiting Response</span><span class="inv-title">First Aid & CPR Certification</span></div>
-  <div class="inv-details">
-    <div class="inv-detail-item"><div class="inv-detail-label">Date</div><div class="inv-detail-val">📅 Jun 5, 2026</div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Time</div><div class="inv-detail-val">⏰ 09:00 – 13:00</div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Location</div><div class="inv-detail-val">📍 Medical Training Room</div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Type</div><div class="inv-detail-val"><span class="badge o">In-Person</span></div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Enrolled</div><div class="inv-detail-val">👥 15 participants</div></div>
-    <div class="inv-detail-item"><div class="inv-detail-label">Assigned By</div><div class="inv-detail-val">👔 Zaid Hadi (Admin)</div></div>
+  <!-- Session info grid -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid var(--border);">
+    ${[['📅 Date',s.date],['⏰ Time',s.time],['📍 Location',s.loc],['🏷 Type',`<span class="badge ${s.typecls}">${s.type}</span>`],['👥 Enrolled',s.enrolled+' participants'],['👔 Assigned By','Zaid Hadi (Admin)']].map(([l,v],i)=>`
+    <div style="padding:11px 14px;border-right:${i%3!==2?'1px solid var(--border)':'none'};border-bottom:${i<3?'1px solid var(--border)':'none'};">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">${l.split(' ').slice(1).join(' ')}</div>
+      <div style="font-size:12px;font-weight:600;">${v}</div>
+    </div>`).join('')}
   </div>
-  <div class="inv-actions">
-    <button class="btn btn-red" onclick="declineAssign(this)">✗ Decline</button>
-    <button class="btn btn-primary" onclick="openModal('mo-accept-assign')">✓ Accept Assignment</button>
+
+  ${s.note?`<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(107,45,94,.03);"><div style="font-size:11px;color:var(--text2);">📝 <strong>Admin Note:</strong> ${s.note}</div></div>`:''}
+
+  <!-- Collapsible sections -->
+  <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+
+    <!-- Exam -->
+    <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;">
+      <div onclick="toggleSec('asec-exam-${si}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:var(--surface2);transition:background .12s;" onmouseover="this.style.background='var(--surf3)'" onmouseout="this.style.background='var(--surface2)'">
+        <span style="font-size:13px;">📝</span>
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:700;">Exam: ${s.exam}</div>
+          <div style="display:flex;gap:7px;margin-top:3px;">
+            <span class="badge ${s.examType==='online'?'bb':'bo'}" style="font-size:9px;">${s.examType==='online'?'💻 Online':'📄 Paper'}</span>
+            <span style="font-size:10px;color:var(--text2);">${s.examType==='online'?s.examQ+' questions · '+s.examMarks+'marks':'20 marks'} · Pass: ${s.examPass}%</span>
+          </div>
+        </div>
+        <span style="font-size:11px;color:var(--text3);transition:transform .2s;" id="asec-arr-exam-${si}">▾</span>
+      </div>
+      <div id="asec-exam-${si}" style="display:none;padding:13px 14px;border-top:1px solid var(--border);">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;flex:1;"><div style="font-size:10px;color:var(--text3);">Type</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${s.examType==='online'?'💻 Online':'📄 Paper'}</div></div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;flex:1;"><div style="font-size:10px;color:var(--text3);">Pass Mark</div><div style="font-size:18px;font-weight:800;color:var(--green);font-family:'JetBrains Mono',monospace;margin-top:2px;">${s.examPass}%</div></div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;flex:1;"><div style="font-size:10px;color:var(--text3);">Min Attendance</div><div style="font-size:18px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;margin-top:2px;">${s.attMin}%</div></div>
+          <div style="background:${s.bypass?'rgba(22,163,74,.07)':'rgba(220,38,38,.06)'};border:1px solid ${s.bypass?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'};border-radius:8px;padding:10px 16px;text-align:center;flex:1;"><div style="font-size:10px;color:var(--text3);">Bypass</div><div style="font-size:12px;font-weight:700;color:${s.bypass?'var(--green)':'var(--red)'};margin-top:4px;">${s.bypass?'✓ Allowed':'✗ Not Allowed'}</div></div>
+        </div>
+        ${s.examType==='paper'?`<button class="btn btn-s btn-sm" onclick="showToast('Downloading exam files','b')">📥 Download Exam Files</button>`:`<div class="ib-i" style="font-size:11px;">Questions will be sent to trainees automatically when you end the session.</div>`}
+      </div>
+    </div>
+
+    <!-- Materials -->
+    <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;">
+      <div onclick="toggleSec('asec-mat-${si}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:var(--surface2);transition:background .12s;" onmouseover="this.style.background='var(--surf3)'" onmouseout="this.style.background='var(--surface2)'">
+        <span style="font-size:13px;">📁</span>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:700;">Course Materials</div><div style="font-size:10px;color:var(--text3);margin-top:2px;">${s.mats.length} file${s.mats.length!==1?'s':''} attached by admin</div></div>
+        <span style="font-size:11px;color:var(--text3);transition:transform .2s;" id="asec-arr-mat-${si}">▾</span>
+      </div>
+      <div id="asec-mat-${si}" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        ${s.mats.length===0?`<div class="ib-i" style="font-size:11px;">No materials attached for this session yet.</div>`:s.mats.map(m=>`
+        <div style="display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:6px;">
+          <span style="font-size:18px;">${m.icon}</span>
+          <div style="flex:1;"><div style="font-size:12px;font-weight:600;">${m.name}</div><div style="font-size:10px;color:var(--text3);">${m.size}</div></div>
+          <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(107,45,94,.08);color:${m.viscol};">${m.vis}</span>
+          <button class="btn btn-s btn-sm" onclick="showToast('Downloading...','b')" style="font-size:9px;">📥</button>
+        </div>`).join('')}
+        ${s.mats.length>0?`
+        <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px;">📎 Upload Optional Files for Trainees</div>
+          <label style="display:flex;align-items:center;gap:9px;padding:10px 13px;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;background:var(--surface);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <input type="file" style="display:none" onchange="showToast('File uploaded: '+this.files[0].name,'g')">
+            <span style="font-size:20px;">📎</span>
+            <div><div style="font-size:12px;font-weight:600;">Click to upload optional file</div><div style="font-size:10px;color:var(--text3);">PDF, PPT, DOCX, MP4 · Extra materials for trainees</div></div>
+          </label>
+        </div>`:''}
+      </div>
+    </div>
+
   </div>
-</div>
+</div>`).join('')}
 
 <div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Accepted Sessions</div>
-<div class="tw"><table><thead><tr><th>Course</th><th>Date</th><th>Time</th><th>Location</th><th>Enrolled</th><th>Status</th><th></th></tr></thead><tbody>
-<tr><td style="font-weight:600;color:var(--text)">Risk Assessment Fundamentals</td><td>May 19, 2026</td><td>09:00–13:00</td><td>Room 201</td><td>18</td><td><span class="badge g">Accepted</span></td><td><button class="btn btn-sm btn-outline" onclick="showPage('instr-attendance')">Open Sheet</button></td></tr>
-<tr><td style="font-weight:600;color:var(--text)">Fire Safety & Emergency Response</td><td>May 10, 2026</td><td>09:00–17:00</td><td>Training Center A</td><td>20</td><td><span class="badge g">Completed</span></td><td><button class="btn btn-sm btn-outline" onclick="showPage('instr-history')">View Results</button></td></tr>
+<div class="tw"><table><thead><tr><th>Course</th><th>Date</th><th>Enrolled</th><th>Status</th><th></th></tr></thead><tbody>
+<tr><td style="font-weight:600;color:var(--text)">Risk Assessment Fundamentals</td><td>May 19, 2026</td><td>18</td><td><span class="badge bg">Accepted</span></td><td><button class="btn btn-sm btn-outline" onclick="showPage('instr-attendance')">Open Sheet</button></td></tr>
+<tr><td style="font-weight:600;color:var(--text)">Fire Safety & Emergency Response</td><td>May 10, 2026</td><td>20</td><td><span class="badge bm">Completed</span></td><td><button class="btn btn-sm btn-outline" onclick="showPage('instr-history')">View Results</button></td></tr>
 </tbody></table></div>`; }
+
+function toggleSec(id) {
+  const el  = document.getElementById(id);
+  const arr = document.getElementById(id.replace('asec-','asec-arr-'));
+  if(!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if(arr) arr.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+
+
 
 function instrContent() {
   return `
 <div class="ph">
-  <div class="pt">Course Content &amp; Exam <small>Prepare session materials and assessment</small></div>
+  <div><div class="pt">My Sessions</div><div class="ps">Sessions assigned to you</div></div>
 </div>
 
 <!-- Session selector -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-  <div style="font-size:12px;font-weight:600;color:var(--text2);">Session:</div>
-  <select class="form-select" style="width:auto;min-width:280px" onchange="switchContentSession(this)">
-    <option value="s1">🔥 Fire Safety — May 24, 2026 (Pending)</option>
-    <option value="s2">⚕️ First Aid & CPR — Jun 5, 2026 (Pending)</option>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <span style="font-size:11px;font-weight:600;color:var(--text2);">Session:</span>
+  <select class="form-select" style="width:auto;min-width:260px;" onchange="showToast('Switched to '+this.options[this.selectedIndex].text,'b')">
+    <option>🔥 Fire Safety & Emergency Response — May 24, 2026</option>
+    <option>⚕️ First Aid & CPR Certification — Jun 5, 2026</option>
   </select>
-  <span class="badge o" id="content-sess-status">In Progress</span>
-  <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-outline btn-sm" onclick="showToast('Content saved as draft','b')">💾 Save Draft</button>
-    <button class="btn btn-primary btn-sm" id="content-publish-btn" onclick="openModal('mo-send-exam')">🚀 Publish &amp; Send Exam</button>
+  <span class="badge bo">Upcoming</span>
+</div>
+
+<!-- Session overview profile -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+
+  <!-- Info -->
+  <div class="card"><div class="ch"><h3>📋 Session Info</h3></div><div class="cb">
+    ${[['Course','Fire Safety & Emergency Response'],['Date','May 24, 2026'],['Time','09:00 – 17:00'],['Location','Training Center A, Room 101'],['Type','Hybrid'],['Enrolled','20 participants'],['Assigned By','Zaid Hadi (Admin)']].map(([l,v])=>`
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--text2);">${l}</span><span style="font-weight:600;">${v}</span></div>`).join('')}
+  </div></div>
+
+  <!-- Exam & Attendance rules -->
+  <div class="card"><div class="ch"><h3>📝 Exam & Rules</h3></div><div class="cb">
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+        <div><div style="font-size:11px;color:var(--text2);">Selected Exam</div><div style="font-size:13px;font-weight:700;margin-top:2px;">Final Assessment</div></div>
+        <span class="badge bb" style="align-self:center;">💻 Online</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);">Pass Mark</div><div style="font-size:20px;font-weight:800;color:var(--green);font-family:'JetBrains Mono',monospace;">70%</div></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);">Min Attendance</div><div style="font-size:20px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;">80%</div></div>
+      </div>
+      <div style="background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--green);">✓ You <strong>can</strong> bypass attendance rule for individual trainees</div>
+    </div>
+  </div></div>
+
+</div>
+
+<!-- Course Materials (read-only) -->
+<div class="card" style="margin-bottom:14px;">
+  <div class="ch"><h3>📁 Course Materials</h3><span style="font-size:11px;color:var(--text3);">Set by admin · 3 files</span></div>
+  <div class="cb" style="display:flex;flex-direction:column;gap:7px;">
+    ${[
+      {icon:'📕',name:'Module 1 — Introduction to Fire Safety',size:'3.2 MB',vis:'Before Session',viscol:'var(--accent)',visbg:'var(--accent-h)'},
+      {icon:'📊',name:'Session Overview Slides',size:'5.8 MB',vis:'During Session',viscol:'var(--blue)',visbg:'rgba(29,78,216,.08)'},
+      {icon:'📕',name:'Post-Session Quiz Sheet',size:'0.4 MB',vis:'After — Pre-Quiz',viscol:'var(--orange)',visbg:'rgba(217,119,6,.08)'},
+    ].map(m=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+      <span style="font-size:20px;flex-shrink:0;">${m.icon}</span>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:600;">${m.name}</div><div style="font-size:10px;color:var(--text3);">${m.size}</div></div>
+      <span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:7px;background:${m.visbg};color:${m.viscol};white-space:nowrap;">${m.vis}</span>
+      <button class="btn btn-s btn-sm" onclick="showToast('Downloading...','b')" style="font-size:10px;">📥</button>
+    </div>`).join('')}
   </div>
 </div>
 
-<!-- Two-column layout -->
-<div style="display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start;">
-
-  <!-- LEFT: Content + Exam builder -->
-  <div style="display:flex;flex-direction:column;gap:16px;">
-
-    <!-- Course Content -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:13px;font-weight:700;">📖 Course Content</div>
-        <button class="btn btn-sm btn-outline" onclick="addContentSection()">+ Add Section</button>
-      </div>
-      <div style="padding:16px 18px;" id="content-sections">
-
-        <!-- Section 1 -->
-        <div class="content-section" style="margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">1</div>
-            <input class="form-input" value="Introduction to Fire Safety" style="font-weight:700;" placeholder="Section title...">
-            <button onclick="this.closest('.content-section').remove()" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;">✕</button>
-          </div>
-          <textarea class="form-textarea" style="min-height:70px;" placeholder="Section content, key points, notes for participants...">Overview of fire hazards in industrial environments. Key definitions: flammable, combustible, ignition sources. Legal framework: NFPA 72 and local civil defense regulations.</textarea>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <div style="border:1.5px dashed var(--border);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--text3);cursor:pointer;flex:1;text-align:center;" onclick="this.querySelector('input').click()">📎 Attach file or slide <input type="file" style="display:none" onchange="attachFile(this)"></div>
-            <div style="border:1.5px dashed var(--border);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--text3);cursor:pointer;" onclick="showToast('Video link added','b')">🎥 Video URL</div>
-          </div>
-        </div>
-
-        <!-- Section 2 -->
-        <div class="content-section" style="margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">2</div>
-            <input class="form-input" value="Fire Extinguisher Operation" style="font-weight:700;" placeholder="Section title...">
-            <button onclick="this.closest('.content-section').remove()" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;">✕</button>
-          </div>
-          <textarea class="form-textarea" style="min-height:70px;" placeholder="Section content...">PASS technique: Pull, Aim, Squeeze, Sweep. Types of extinguishers and their use cases. Practical drill procedure and safety distances.</textarea>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <div style="border:1.5px dashed var(--border);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--text3);cursor:pointer;flex:1;text-align:center;" onclick="this.querySelector('input').click()">📎 Attach file <input type="file" style="display:none" onchange="attachFile(this)"></div>
-          </div>
-        </div>
-
-        <div id="extra-sections"></div>
+<!-- Optional files upload -->
+<div class="card">
+  <div class="ch"><h3>📎 My Optional Files for Trainees</h3><span style="font-size:11px;color:var(--text3);">Supplementary materials you want to share</span></div>
+  <div class="cb">
+    <!-- Uploaded -->
+    <div id="opt-files-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px;">
+      <div class="opt-file" style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+        <span style="font-size:18px;">📘</span>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:600;">Additional Safety Reference — NFPA Summary</div><div style="font-size:10px;color:var(--text3);">2.1 MB · Added by you</div></div>
+        <button class="btn btn-d btn-sm" onclick="this.closest('.opt-file').remove()" style="font-size:10px;">✕ Remove</button>
       </div>
     </div>
-
-    <!-- Exam Builder -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;" id="exam-builder-card">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-        <div style="font-size:13px;font-weight:700;">📝 Assessment</div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <div style="font-size:12px;color:var(--text2);">Type:</div>
-          <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-            <button id="btn-online" class="exam-type-btn active" onclick="setExamType('online')"
-              style="padding:7px 18px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .15s;background:var(--accent);color:#fff;font-family:inherit;">
-              💻 Online
-            </button>
-            <button id="btn-paper" class="exam-type-btn" onclick="setExamType('paper')"
-              style="padding:7px 18px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .15s;background:transparent;color:var(--text2);font-family:inherit;">
-              📄 Paper
-            </button>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:12px;color:var(--text2);">Pass mark:</span>
-            <input id="pass-mark-input" type="number" min="0" max="100" value="60"
-              style="width:58px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--text);outline:none;"
-              oninput="updatePassMark(this.value)">
-            <span style="font-size:12px;color:var(--text2);">/ 100</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Online exam builder -->
-      <div id="exam-online" style="padding:16px 18px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-          <div style="font-size:11px;color:var(--text2);">Questions — <span id="q-count">2</span> added</div>
-          <button class="btn btn-sm btn-outline" style="margin-left:auto" onclick="addQuestion()">+ Add Question</button>
-        </div>
-        <div id="questions-list" style="display:flex;flex-direction:column;gap:12px;"></div>
-        <div id="no-questions" style="text-align:center;padding:24px;color:var(--text3);font-size:12px;display:none;">No questions yet. Click "+ Add Question" to start building the exam.</div>
-      </div>
-
-      <!-- Paper exam notice -->
-      <div id="exam-paper" style="padding:20px 18px;display:none;">
-        <div style="background:rgba(107,45,94,.06);border:1px solid rgba(107,45,94,.2);border-radius:10px;padding:16px;text-align:center;">
-          <div style="font-size:28px;margin-bottom:8px;">📄</div>
-          <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Paper-Based Exam</div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">You will distribute printed exam sheets during the session. After collecting them, enter each participant's score manually in the Attendance & Grades sheet.</div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:10px;background:var(--surface2);border-radius:8px;padding:12px 16px;margin-bottom:12px;">
-            <span style="font-size:12px;color:var(--text2);">Pass mark for this session:</span>
-            <span id="paper-pass-display" style="font-size:20px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;">60</span>
-            <span style="font-size:12px;color:var(--text2);">/ 100</span>
-          </div>
-          <button class="btn btn-outline btn-sm" onclick="showToast('Answer sheet template downloaded','b')">📥 Download Answer Sheet Template</button>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /LEFT -->
-
-  <!-- RIGHT: Preview & summary -->
-  <div style="display:flex;flex-direction:column;gap:14px;position:sticky;top:16px;">
-
-    <!-- Session info -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">📋 Session Info</div>
-      ${[['Course','Fire Safety & Emergency Response'],['Date','May 24, 2026'],['Time','09:00–17:00'],['Participants','20 enrolled'],['Type','Hybrid']].map(([l,v])=>`
-      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;"><span style="color:var(--text3)">${l}</span><span style="font-weight:600">${v}</span></div>`).join('')}
-    </div>
-
-    <!-- Content summary -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;" id="content-summary-card">
-      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">📊 Readiness</div>
-      <div style="display:flex;flex-direction:column;gap:8px;" id="readiness-items">
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
-          <span style="color:var(--green)">✓</span><span>2 content sections added</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px;" id="ready-exam">
-          <span style="color:var(--green)">✓</span><span id="exam-ready-label">Online exam — 2 questions</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px;" id="ready-passmark">
-          <span style="color:var(--green)">✓</span><span>Pass mark: <strong id="pass-mark-display">60</strong>/100</span>
-        </div>
-      </div>
-      <div style="margin-top:14px;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;">
-        <div style="height:100%;width:80%;background:var(--accent);border-radius:3px;transition:width .5s;"></div>
-      </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:5px;">80% ready — add more questions to complete</div>
-    </div>
-
-    <!-- Exam type card -->
-    <div id="exam-type-card" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🎯 Exam Settings</div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span style="color:var(--text3)">Type</span><span id="side-exam-type" style="font-weight:700;color:var(--accent)">💻 Online</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span style="color:var(--text3)">Questions</span><span id="side-q-count" style="font-weight:700;">2</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span style="color:var(--text3)">Pass Mark</span><span id="side-pass-mark" style="font-weight:700;color:var(--accent)">60/100</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--text3)">Auto-grade</span><span id="side-autograde" style="font-weight:700;color:var(--green)">✓ Yes</span></div>
-    </div>
-
-  </div><!-- /RIGHT -->
-</div>
-
-<!-- After session ends — send exam button banner -->
-<div id="send-exam-banner" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;padding:18px 22px;margin-top:18px;display:flex;align-items:center;gap:14px;color:#fff;display:none;">
-  <span style="font-size:28px;">🚀</span>
-  <div style="flex:1;">
-    <div style="font-size:14px;font-weight:800;">Session Complete — Send Online Exam to Participants</div>
-    <div style="font-size:12px;opacity:.85;margin-top:3px;">20 participants attended. Click to send the exam link. They'll receive a notification and must complete it within 48 hours.</div>
+    <!-- Upload zone -->
+    <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px dashed var(--border);border-radius:9px;cursor:pointer;background:var(--surface2);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <input type="file" style="display:none" onchange="addOptFile(this)">
+      <span style="font-size:22px;">📎</span>
+      <div><div style="font-size:12px;font-weight:600;">Click to upload optional file</div><div style="font-size:10px;color:var(--text3);">PDF, PPT, DOCX, MP4 — max 200MB</div></div>
+    </label>
   </div>
-  <button class="btn btn-sm" style="background:#fff;color:var(--accent);font-weight:700;" onclick="openModal('mo-send-exam')">Send Exam Now →</button>
 </div>
 `;
 }
 
-function setExamType(type) {
-  const onlineEl = document.getElementById('exam-online');
-  const paperEl  = document.getElementById('exam-paper');
-  const btnO = document.getElementById('btn-online');
-  const btnP = document.getElementById('btn-paper');
-  const sideType = document.getElementById('side-exam-type');
-  const sideAuto = document.getElementById('side-autograde');
-  const examLabel = document.getElementById('exam-ready-label');
-
-  if(type==='online'){
-    onlineEl.style.display='block'; paperEl.style.display='none';
-    btnO.style.background='var(--accent)'; btnO.style.color='#fff';
-    btnP.style.background='transparent'; btnP.style.color='var(--text2)';
-    if(sideType) sideType.textContent='💻 Online';
-    if(sideAuto) sideAuto.textContent='✓ Yes'; if(sideAuto) sideAuto.style.color='var(--green)';
-    const qCount = document.querySelectorAll('.question-card').length;
-    if(examLabel) examLabel.textContent='Online exam — '+qCount+' questions';
-  } else {
-    onlineEl.style.display='none'; paperEl.style.display='block';
-    btnP.style.background='var(--accent)'; btnP.style.color='#fff';
-    btnO.style.background='transparent'; btnO.style.color='var(--text2)';
-    if(sideType) sideType.textContent='📄 Paper';
-    if(sideAuto){ sideAuto.textContent='✗ Manual entry'; sideAuto.style.color='var(--orange)'; }
-    if(examLabel) examLabel.textContent='Paper exam — manual grading';
-  }
-}
-
-function updatePassMark(val) {
-  ['pass-mark-display','side-pass-mark','paper-pass-display'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.textContent = id==='side-pass-mark' ? val+'/100' : val;
-  });
-}
-
-let questionCount = 0;
-const QUESTION_TEMPLATES = [
-  { q:'What does the acronym PASS stand for in fire extinguisher use?', type:'mcq', opts:['Pull, Aim, Squeeze, Sweep','Push, Angle, Shoot, Spin','Pull, Angle, Spray, Sweep','Prepare, Aim, Squeeze, Spray'], correct:0 },
-  { q:'Which type of fire extinguisher is suitable for electrical fires?', type:'mcq', opts:['Water (Class A)','CO₂ (Class E)','Foam (Class B)','Dry powder — Class A only'], correct:1 },
-];
-
-function addQuestion(template) {
-  questionCount++;
-  const tpl = template || { q:'', type:'mcq', opts:['','','',''], correct:0 };
-  const list = document.getElementById('questions-list');
-  const noQ  = document.getElementById('no-questions');
-  if(noQ) noQ.style.display='none';
-
+function addOptFile(input) {
+  const f = input.files[0]; if(!f) return;
+  const list = document.getElementById('opt-files-list');
+  if(!list) return;
   const div = document.createElement('div');
-  div.className='question-card';
-  div.dataset.q = questionCount;
-  div.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;';
-  div.innerHTML=`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-      <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">Q${questionCount}</div>
-      <select style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);font-family:inherit;outline:none;" onchange="changeQType(this)">
-        <option value="mcq" ${tpl.type==='mcq'?'selected':''}>Multiple Choice</option>
-        <option value="truefalse" ${tpl.type==='truefalse'?'selected':''}>True / False</option>
-        <option value="short" ${tpl.type==='short'?'selected':''}>Short Answer</option>
-      </select>
-      <button onclick="this.closest('.question-card').remove();updateQCount()" style="margin-left:auto;border:none;background:none;color:var(--red);cursor:pointer;font-size:15px;">✕</button>
-    </div>
-    <input class="form-input" value="${tpl.q}" placeholder="Type your question here..." style="margin-bottom:10px;font-weight:600;">
-    <div class="q-options">
-      ${tpl.opts.map((o,i)=>`
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <input type="radio" name="correct-${questionCount}" ${i===tpl.correct?'checked':''} style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;" title="Mark as correct answer">
-        <input class="form-input" value="${o}" placeholder="Option ${String.fromCharCode(65+i)}" style="flex:1;">
-      </div>`).join('')}
-      <div style="font-size:10px;color:var(--text3);margin-top:4px;">☝ Select the radio button next to the correct answer</div>
-    </div>`;
+  div.className = 'opt-file';
+  div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;';
+  div.innerHTML = `<span style="font-size:18px;">📎</span><div style="flex:1;"><div style="font-size:12px;font-weight:600;">${f.name}</div><div style="font-size:10px;color:var(--text3);">${(f.size/1024/1024).toFixed(1)} MB · Just uploaded</div></div><button class="btn btn-d btn-sm" onclick="this.closest('.opt-file').remove()" style="font-size:10px;">✕ Remove</button>`;
   list.appendChild(div);
-  updateQCount();
+  showToast(f.name + ' uploaded', 'g');
 }
 
-function updateQCount() {
-  const count = document.querySelectorAll('.question-card').length;
-  const qcEl = document.getElementById('q-count');
-  const sqEl = document.getElementById('side-q-count');
-  if(qcEl) qcEl.textContent = count;
-  if(sqEl) sqEl.textContent = count;
-  const examLabel = document.getElementById('exam-ready-label');
-  if(examLabel && document.getElementById('btn-online')?.style.background.includes('accent') ) {
-    examLabel.textContent = 'Online exam — '+count+' questions';
-  }
-}
 
-function changeQType(sel) {
-  const qDiv = sel.closest('.question-card');
-  const optsDiv = qDiv.querySelector('.q-options');
-  const qNum = qDiv.dataset.q;
-  if(sel.value==='mcq'){
-    optsDiv.innerHTML=['','','',''].map((o,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><input type="radio" name="correct-${qNum}" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;" title="Mark correct"><input class="form-input" placeholder="Option ${String.fromCharCode(65+i)}" style="flex:1;"></div>`).join('')+'<div style="font-size:10px;color:var(--text3);margin-top:4px;">☝ Select the radio next to the correct answer</div>';
-  } else if(sel.value==='truefalse'){
-    optsDiv.innerHTML=`<div style="display:flex;gap:12px;"><div style="display:flex;align-items:center;gap:6px;"><input type="radio" name="correct-${qNum}" checked style="accent-color:var(--accent);cursor:pointer;"><label style="font-size:13px;font-weight:600;color:var(--green)">✓ True</label></div><div style="display:flex;align-items:center;gap:6px;"><input type="radio" name="correct-${qNum}" style="accent-color:var(--accent);cursor:pointer;"><label style="font-size:13px;font-weight:600;color:var(--red)">✗ False</label></div></div><div style="font-size:10px;color:var(--text3);margin-top:6px;">Select the correct answer</div>`;
-  } else {
-    optsDiv.innerHTML=`<div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Model answer (for grading reference):</div><textarea class="form-textarea" placeholder="Type the expected correct answer here..." style="min-height:60px;"></textarea>`;
-  }
-}
+function instrQuiz() {
+  const QS = [
+    { num:1, type:'Short Answer',    text:'What does SDS stand for?', marks:1 },
+    { num:2, type:'Multiple Choice', text:'Which PPE is required when handling corrosive chemicals?', marks:1,
+      opts:['Safety glasses only','Gloves and safety glasses','Full face shield, chemical gloves, and apron','Regular work gloves'], correct:2 },
+    { num:3, type:'True / False',    text:'GHS labels are required on all hazardous chemical containers.', marks:1, opts:['True','False'], correct:0 },
+  ];
+  const total  = QS.reduce((s,q)=>s+q.marks,0);
+  const passMk = Math.ceil(total*70/100);
 
-function addContentSection() {
-  const extra = document.getElementById('extra-sections');
-  if(!extra) return;
-  const num = document.querySelectorAll('.content-section').length + 1;
-  const div = document.createElement('div');
-  div.className='content-section';
-  div.style.marginBottom='16px';
-  div.innerHTML=`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${num}</div>
-      <input class="form-input" placeholder="Section title..." style="font-weight:700;">
-      <button onclick="this.closest('.content-section').remove()" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;">✕</button>
+  const renderOpts = q => {
+    if(q.type==='Short Answer') return `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;font-size:12px;color:var(--text3);font-style:italic;min-height:60px;">Model answer for grading reference...</div>`;
+    if(q.type==='Multiple Choice') return q.opts.map((o,i)=>`
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;">
+        <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${i===q.correct?'var(--green)':'var(--border)'};background:${i===q.correct?'var(--green)':'transparent'};flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          ${i===q.correct?'<div style="width:8px;height:8px;border-radius:50%;background:#fff"></div>':''}
+        </div>
+        <div style="flex:1;padding:8px 11px;border:1.5px solid ${i===q.correct?'var(--green)':'var(--border)'};border-radius:7px;font-size:12px;background:${i===q.correct?'rgba(22,163,74,.06)':'var(--surface2)'};">${o}</div>
+        ${i===q.correct?'<span class="badge bg" style="font-size:9px">✓ Correct</span>':''}
+      </div>`).join('');
+    if(q.type==='True / False') return `
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <div style="flex:1;padding:10px;border:2px solid ${q.correct===0?'var(--green)':'var(--border)'};border-radius:8px;text-align:center;font-size:13px;font-weight:700;color:${q.correct===0?'var(--green)':'var(--text2)'};background:${q.correct===0?'rgba(22,163,74,.06)':'var(--surface2)'};"> ✓ True ${q.correct===0?'<span class="badge bg" style="font-size:9px;margin-left:4px">Correct</span>':''}</div>
+        <div style="flex:1;padding:10px;border:2px solid ${q.correct===1?'var(--red)':'var(--border)'};border-radius:8px;text-align:center;font-size:13px;font-weight:700;color:${q.correct===1?'var(--red)':'var(--text2)'};background:${q.correct===1?'rgba(220,38,38,.06)':'var(--surface2)'};">✗ False ${q.correct===1?'<span class="badge br" style="font-size:9px;margin-left:4px">Correct</span>':''}</div>
+      </div>`;
+    return '';
+  };
+
+  return `
+<div class="ph">
+  <div><div class="pt">Quiz &amp; Exam</div><div class="ps">Assessment for: Fire Safety &amp; Emergency Response</div></div>
+  <div class="ph-actions">
+    <select style="background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:7px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;">
+      <option>Fire Safety &amp; Emergency Response — 2026-05-24</option>
+      <option>Chemical Hazard Awareness — 2026-05-26</option>
+    </select>
+    <button class="btn btn-outline btn-sm" onclick="showToast('Saved as draft','b')">Save Draft</button>
+    <button class="btn btn-primary btn-sm" onclick="showToast('Quiz published!','g')">Publish Quiz</button>
+  </div>
+</div>
+
+<!-- Settings bar -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:14px;display:flex;align-items:center;">
+  <div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Quiz Type</div>
+    <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <div style="padding:8px 20px;font-size:12px;font-weight:700;background:var(--accent);color:#fff;">💻 Online</div>
+      <div style="padding:8px 20px;font-size:12px;font-weight:700;background:var(--surface);color:var(--text2);">📄 Paper</div>
     </div>
-    <textarea class="form-textarea" style="min-height:70px;" placeholder="Section content, key points..."></textarea>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <div style="border:1.5px dashed var(--border);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--text3);cursor:pointer;flex:1;text-align:center;" onclick="this.querySelector('input').click()">📎 Attach file <input type="file" style="display:none" onchange="attachFile(this)"></div>
-    </div>`;
-  extra.appendChild(div);
+  </div>
+  <div style="width:1px;background:var(--border);align-self:stretch;margin:0 28px;"></div>
+  <div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Total Marks</div>
+    <div style="display:flex;align-items:baseline;gap:8px;">
+      <span style="font-size:36px;font-weight:800;font-family:'JetBrains Mono',monospace;">${total}</span>
+      <div style="font-size:10px;color:var(--text3);">total marks<br>for this quiz</div>
+    </div>
+  </div>
+  <div style="width:1px;background:var(--border);align-self:stretch;margin:0 28px;"></div>
+  <div style="flex:1;">
+    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Pass Mark (%)</div>
+    <div style="display:flex;align-items:baseline;gap:8px;">
+      <span style="font-size:36px;font-weight:800;font-family:'JetBrains Mono',monospace;">70</span>
+      <div style="font-size:10px;color:var(--text3);">% to pass<br>the quiz</div>
+    </div>
+  </div>
+  <div style="width:1px;background:var(--border);align-self:stretch;margin:0 28px;"></div>
+  <div style="text-align:right;">
+    <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">To pass, trainee needs</div>
+    <div style="font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);">${passMk} / ${total}</div>
+    <div style="font-size:11px;color:var(--text3);">marks (70%)</div>
+  </div>
+</div>
+
+<!-- Notice -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;">
+  <span style="font-size:16px;flex-shrink:0;">ℹ️</span>
+  <div style="font-size:12px;color:var(--text2);line-height:1.6;">The quiz deadline (how long trainees have to submit) is set when you <strong style="color:var(--accent);">End Session</strong>.<br>You can choose hours, days, or weeks.</div>
+</div>
+
+<!-- Questions -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+  <div style="font-size:13px;font-weight:700;">${QS.length} questions</div>
+  <button class="btn btn-outline btn-sm" onclick="showToast('Add question','b')">+ Add Question</button>
+</div>
+
+${QS.map(q=>`
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;">
+  <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);">
+    <div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${q.num}</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--text2);">${q.type}</div>
+    <div style="margin-left:auto;font-size:12px;color:var(--text2);">Marks: <strong style="color:var(--text);">${q.marks}</strong></div>
+  </div>
+  <div style="padding:14px 16px;">
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">${q.text}</div>
+    ${renderOpts(q)}
+  </div>
+</div>`).join('')}
+`;
 }
 
-function attachFile(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const zone = input.closest('div');
-  zone.innerHTML=`<span style="font-size:11px;color:var(--accent);font-weight:600;">📎 ${file.name}</span><button onclick="this.parentElement.innerHTML='📎 Attach file <input type=\\'file\\' style=\\'display:none\\' onchange=\\'attachFile(this)\\'>';" style="margin-left:8px;border:none;background:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`;
-}
-
-function switchContentSession(sel) {
-  showToast('Switched to '+sel.options[sel.selectedIndex].text.split('—')[0].trim(),'b');
-}
-
-// init questions on page load
-document.addEventListener('DOMContentLoaded', ()=>{
-  if(document.getElementById('questions-list')){
-    QUESTION_TEMPLATES.forEach(t=>addQuestion(t));
-  }
-});
-
-// also init when instrContent is shown (since we use innerHTML)
-const _origShowPage = showPage;
-window.showPage = function(id) {
-  _origShowPage(id);
-  if(id==='instr-content'){
-    setTimeout(()=>{
-      if(document.getElementById('questions-list')){
-        QUESTION_TEMPLATES.forEach(t=>addQuestion(t));
-      }
-    }, 80);
-  }
-};
 
 function instrAttendance() { return `
 <div class="ph"><div class="pt">Attendance & Grades <small>Record attendance and scores</small></div><div class="ph-actions"><button class="btn btn-outline btn-sm" onclick="markAllPresent()">✅ Mark All Present</button><button class="btn btn-primary btn-sm" onclick="openModal('mo-save-attendance')">💾 Submit</button></div></div>
@@ -3767,6 +4714,283 @@ function openRejectModal(label) {
 }
 
 // ══════════════════════════════════════════
+//  COURSE MATERIALS
+// ══════════════════════════════════════════
+let currentMatType = 'PDF';
+let currentMatVis  = 'during';
+
+function selectMatType(type, el) {
+  currentMatType = type;
+  document.querySelectorAll('#mat-type-btns > div').forEach(d => {
+    d.style.borderColor = 'var(--border)';
+    d.style.background  = 'var(--surface)';
+    d.querySelector('span:last-child').style.color = 'var(--text3)';
+  });
+  el.style.borderColor = 'var(--accent)';
+  el.style.background  = 'var(--accent-h)';
+  el.querySelector('span:last-child').style.color = 'var(--accent)';
+}
+
+function selectMatVis(vis, el) {
+  currentMatVis = vis;
+  document.querySelectorAll('#mat-vis-opts > div').forEach(d => {
+    d.style.borderColor = 'var(--border)';
+    d.style.background  = 'var(--surface)';
+    d.querySelector('div').innerHTML = '';
+  });
+  el.style.borderColor = 'var(--accent)';
+  el.style.background  = 'var(--accent-h)';
+  el.querySelector('div').innerHTML = '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>';
+}
+
+function handleMatFile(input) {
+  const f = input.files[0]; if(!f) return;
+  const dz = document.getElementById('mat-dropzone-content');
+  if(dz) dz.innerHTML = `<div style="font-size:11px;color:var(--accent);font-weight:700;">📎 ${f.name}</div><div style="font-size:10px;color:var(--text3)">${(f.size/1024/1024).toFixed(1)} MB</div>`;
+}
+
+function handleMatDrop(e) {
+  e.preventDefault();
+  const dz = document.getElementById('mat-dropzone');
+  if(dz){ dz.style.borderColor='var(--border)'; dz.style.background='var(--surface2)'; }
+  const f = e.dataTransfer.files[0]; if(!f) return;
+  const input = document.getElementById('mat-file-input');
+  const cnt = document.getElementById('mat-dropzone-content');
+  if(cnt) cnt.innerHTML = `<div style="font-size:11px;color:var(--accent);font-weight:700;">📎 ${f.name}</div><div style="font-size:10px;color:var(--text3)">${(f.size/1024/1024).toFixed(1)} MB</div>`;
+}
+
+function addMaterial() {
+  const title = document.getElementById('mat-title')?.value.trim();
+  if(!title){ showToast('Please enter a file title','r'); return; }
+
+  const vis = currentMatVis;
+  const cfg = {
+    before:{icon:'⏰',label:'Before Session',color:'var(--accent)',bg:'var(--accent-h)'},
+    during:{icon:'▶️',label:'During Session',color:'var(--blue)',bg:'rgba(37,99,199,.08)'},
+    after: {icon:'🎯',label:'After — Pre-Quiz',color:'var(--orange)',bg:'rgba(217,119,6,.08)'},
+  }[vis];
+  const typeIcon = {PDF:'📕',PPT:'📊',Video:'🎬',Word:'📘',Other:'📄'}[currentMatType]||'📄';
+
+  const container = document.querySelector(`.mat-items[data-vis="${vis}"]`);
+  if(!container) return;
+
+  const div = document.createElement('div');
+  div.className = 'mat-item';
+  div.dataset.vis = vis;
+  div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;animation:fadeUp .2s ease';
+  div.innerHTML = `
+    <span style="font-size:20px;">${typeIcon}</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;font-weight:700;">${title}</div>
+      <div style="font-size:10px;color:var(--text3);">Just uploaded · ${currentMatType}</div>
+    </div>
+    <span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:8px;background:${cfg.bg};color:${cfg.color};white-space:nowrap;">${cfg.icon} ${cfg.label}</span>
+    <button onclick="this.closest('.mat-item').remove();updateMatCount()" style="width:22px;height:22px;border:none;background:var(--surface3);border-radius:5px;cursor:pointer;color:var(--text3);font-size:12px;display:flex;align-items:center;justify-content:center;">✕</button>`;
+  container.appendChild(div);
+
+  // reset form
+  if(document.getElementById('mat-title')) document.getElementById('mat-title').value = '';
+  if(document.getElementById('mat-desc'))  document.getElementById('mat-desc').value  = '';
+  if(document.getElementById('mat-file-input')) document.getElementById('mat-file-input').value = '';
+  const cnt = document.getElementById('mat-dropzone-content');
+  if(cnt) cnt.innerHTML = '<div style="font-size:28px;margin-bottom:5px;opacity:.35">☁️</div><div style="font-size:11px;color:var(--text3);">Click to select file<br>or drag & drop here</div>';
+
+  updateMatCount();
+  showToast(`"${title}" added to ${cfg.label}`,'g');
+}
+
+function updateMatCount() {
+  const total = document.querySelectorAll('.mat-item').length;
+  const mc = document.getElementById('mat-count');
+  if(mc) mc.textContent = total + ' file' + (total!==1?'s':'');
+  // update per-group counts
+  ['before','during','after'].forEach(vis => {
+    const grp = document.querySelector(`.mat-group[data-vis="${vis}"]`);
+    if(!grp) return;
+    const cnt = grp.querySelectorAll('.mat-item').length;
+    const lbl = grp.querySelector('.mat-count-lbl');
+    if(lbl) lbl.textContent = cnt + ' file' + (cnt!==1?'s':'');
+    grp.style.display = cnt === 0 ? 'none' : '';
+  });
+}
+
+// ══════════════════════════════════════════
+//  ADD COURSE — EXAM CARDS
+// ══════════════════════════════════════════
+let EC_COUNT = 1;
+
+function toggleEC(ecId) {
+  const body  = document.getElementById('ec-body-' + ecId.replace('ec-',''));
+  const arrow = document.getElementById('ec-arrow-' + ecId.replace('ec-',''));
+  const hdr   = document.querySelector('#' + ecId + ' .ec-header');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+  if(hdr)   hdr.style.borderRadius = open ? '9px' : '9px 9px 0 0';
+  if(hdr)   hdr.style.borderColor  = open ? 'var(--border)' : 'var(--accent)';
+}
+
+function updateECMeta(id, pm) {
+  const qcount = document.querySelectorAll(`#ec-qlist-${id} > div`).length;
+  const total  = +document.getElementById('ec-total-'+id)?.textContent || 0;
+  const pmVal  = pm || document.getElementById('ec-body-'+id)?.querySelector('input[type="number"][max="100"]')?.value || 70;
+  const meta   = document.getElementById('ec-meta-'+id);
+  const badge  = document.getElementById('ec-type-badge-'+id);
+  if(meta) {
+    const isOnline = document.getElementById('ec-online-'+id)?.style.display !== 'none';
+    meta.textContent = isOnline ? `${qcount} questions · Pass: ${pmVal}%` : `${total} marks · Pass: ${pmVal}%`;
+  }
+}
+
+function addExamCard() {
+  EC_COUNT++;
+  const id  = String(EC_COUNT);
+  const ecId = 'ec-' + id;
+}
+
+function removeExamCard(id) {
+  const el = document.getElementById(id);
+  if(el){ el.style.opacity='0';el.style.transition='opacity .18s';setTimeout(()=>el.remove(),180); }
+}
+
+function setExamCardType(id, type, btn) {
+  const wrap = btn.closest('div[style*="border:1px solid var(--border);border-radius:7px"]') || btn.parentElement;
+  wrap.querySelectorAll('button').forEach(b => {
+    b.style.background = 'transparent';
+    b.style.color = 'var(--text2)';
+  });
+  btn.style.background = 'var(--accent)';
+  btn.style.color = '#fff';
+  const online = document.getElementById('ec-online-' + id);
+  const paper  = document.getElementById('ec-paper-'  + id);
+  if(online) online.style.display = type==='online' ? 'block' : 'none';
+  if(paper)  paper.style.display  = type==='paper'  ? 'block' : 'none';
+}
+
+let EC_Q_COUNT = 0;
+function addECQuestion(ecId) {
+  EC_Q_COUNT++;
+  const qId = 'ecq-' + ecId + '-' + EC_Q_COUNT;
+  const list = document.getElementById('ec-qlist-' + ecId);
+  const noq  = document.getElementById('ec-noq-'   + ecId);
+  if(!list) return;
+  if(noq) noq.style.display = 'none';
+
+  const div = document.createElement('div');
+  div.id = qId;
+  div.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;';
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);">
+      <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="${qId}-num">Q?</div>
+      <select class="form-select" style="width:auto;" onchange="changeECQType('${qId}',this.value)">
+        <option value="mcq">Multiple Choice</option>
+        <option value="truefalse">True / False</option>
+        <option value="short">Short Answer</option>
+      </select>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);">
+        Marks: <input type="number" min="1" max="99" value="1" class="form-input" style="width:46px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;" oninput="recalcECTotal('${ecId}')">
+      </div>
+      <button onclick="removeECQ('${qId}','${ecId}')" style="width:25px;height:25px;border:1px solid rgba(220,38,38,.22);background:rgba(220,38,38,.07);border-radius:6px;cursor:pointer;color:var(--red);font-size:12px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div style="padding:12px 14px;" id="${qId}-body">
+      <input class="form-input" placeholder="Type your question here..." style="margin-bottom:9px;font-weight:600;">
+      <div id="${qId}-opts">
+        ${['A','B','C','D'].map((l,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div onclick="setECCorrect('${qId}',${i})" style="width:17px;height:17px;border-radius:50%;border:2px solid var(--border);cursor:pointer;flex-shrink:0;" class="ec-radio" id="${qId}-r${i}"></div>
+          <input class="form-input" placeholder="Option ${l}" style="flex:1;">
+        </div>`).join('')}
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;">☝ Click the circle to mark the correct answer</div>
+      </div>
+    </div>`;
+  list.appendChild(div);
+  renumberECQuestions(ecId);
+  recalcECTotal(ecId);
+}
+
+function removeECQ(qId, ecId) {
+  const el = document.getElementById(qId);
+  if(el){ el.style.opacity='0';el.style.transition='opacity .15s';setTimeout(()=>{ el.remove();renumberECQuestions(ecId);recalcECTotal(ecId); },160); }
+}
+
+function renumberECQuestions(ecId) {
+  const list = document.getElementById('ec-qlist-' + ecId);
+  if(!list) return;
+  const cards = list.querySelectorAll(':scope > div');
+  cards.forEach((c,i) => {
+    const num = c.querySelector('[id$="-num"]');
+    if(num) num.textContent = 'Q'+(i+1);
+  });
+  const cntEl = document.getElementById('ec-qcount-' + ecId);
+  if(cntEl) cntEl.textContent = cards.length;
+  const noq = document.getElementById('ec-noq-' + ecId);
+  if(noq) noq.style.display = cards.length === 0 ? 'block' : 'none';
+}
+
+function recalcECTotal(ecId) {
+  const list = document.getElementById('ec-qlist-' + ecId);
+  if(!list) return;
+  let total = 0;
+  list.querySelectorAll('input[type="number"]').forEach(inp => total += (+inp.value||0));
+  const tel = document.getElementById('ec-total-' + ecId);
+  if(tel) tel.textContent = total;
+}
+
+function setECCorrect(qId, idx) {
+  document.querySelectorAll(`#${qId}-opts .ec-radio`).forEach((r,i) => {
+    r.style.background = i===idx ? 'var(--green)' : 'transparent';
+    r.style.borderColor = i===idx ? 'var(--green)' : 'var(--border)';
+  });
+}
+
+function changeECQType(qId, type) {
+  const optsDiv = document.getElementById(qId + '-opts');
+  if(!optsDiv) return;
+  if(type === 'mcq') {
+    optsDiv.innerHTML = ['A','B','C','D'].map((l,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div onclick="setECCorrect('${qId}',${i})" style="width:17px;height:17px;border-radius:50%;border:2px solid var(--border);cursor:pointer;flex-shrink:0;" class="ec-radio" id="${qId}-r${i}"></div>
+        <input class="form-input" placeholder="Option ${l}" style="flex:1;">
+      </div>`).join('') + '<div style="font-size:10px;color:var(--text3);margin-top:3px;">☝ Click the circle to mark the correct answer</div>';
+  } else if(type === 'truefalse') {
+    optsDiv.innerHTML = `
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <div onclick="setECTF('${qId}',0,this)" style="flex:1;padding:9px;border:2px solid var(--border);border-radius:8px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;color:var(--text2);transition:all .14s;" class="ec-tf">✓ True</div>
+        <div onclick="setECTF('${qId}',1,this)" style="flex:1;padding:9px;border:2px solid var(--border);border-radius:8px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;color:var(--text2);transition:all .14s;" class="ec-tf">✗ False</div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px;">Click to select the correct answer</div>`;
+  } else {
+    optsDiv.innerHTML = `
+      <textarea class="form-input" style="min-height:60px;resize:vertical;" placeholder="Model answer for grading reference..."></textarea>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;">Graders will see this as reference — not shown to trainees</div>`;
+  }
+}
+
+function setECTF(qId, val, el) {
+  const parent = el.closest('div');
+  parent.querySelectorAll('.ec-tf').forEach((b,i) => {
+    if(i===val) {
+      b.style.borderColor = val===0 ? 'var(--green)' : 'var(--red)';
+      b.style.color       = val===0 ? 'var(--green)' : 'var(--red)';
+      b.style.background  = val===0 ? 'rgba(22,163,74,.06)' : 'rgba(220,38,38,.06)';
+    } else {
+      b.style.borderColor = 'var(--border)';
+      b.style.color       = 'var(--text2)';
+      b.style.background  = 'transparent';
+    }
+  });
+}
+
+function handleECFile(input, labelId) {
+  const f = input.files[0]; if(!f) return;
+  const el = document.getElementById(labelId);
+  if(el) { el.textContent = '✓ ' + f.name; el.style.color = 'var(--green)'; }
+}
+
+function updateExamSummary(id, val) { /* total marks re-calculated by recalcECTotal */ }
+
+// ══════════════════════════════════════════
 //  COURSE — JOB TITLE TARGETING
 // ══════════════════════════════════════════
 const JOB_TITLES = [
@@ -3784,6 +5008,120 @@ const JOB_TITLES = [
 // Map: title -> level (null | mandatory | recommended | optional)
 let jtLevels = {};
 
+// ══════════════════════════════════════════
+//  ADD COURSE WIZARD
+// ══════════════════════════════════════════
+let WIZ_STEP = 1;
+const WIZ_TOTAL = 4;
+
+function goWizStep(n) {
+  // hide all steps
+  for(let i=1;i<=WIZ_TOTAL;i++) {
+    const c=document.getElementById('wstep-content-'+i);
+    if(c) c.style.display = i===n ? 'block':'none';
+  }
+  WIZ_STEP = n;
+  updateWizUI();
+}
+
+function wizNext() {
+  if(WIZ_STEP < WIZ_TOTAL) goWizStep(WIZ_STEP+1);
+  else { closeModal('mo-add-course'); showToast('Course saved successfully!','g'); WIZ_STEP=1; goWizStep(1); }
+}
+function wizBack() {
+  if(WIZ_STEP > 1) goWizStep(WIZ_STEP-1);
+}
+
+function updateWizUI() {
+  const n = WIZ_STEP;
+  // dots
+  for(let i=1;i<=WIZ_TOTAL;i++) {
+    const d=document.getElementById('wdot-'+i);
+    if(d) d.style.background = i===n?'var(--accent)':'var(--border)';
+  }
+  // step circles & labels
+  for(let i=1;i<=WIZ_TOTAL;i++) {
+    const circ=document.getElementById('wstep-circle-'+i);
+    const lbl =document.getElementById('wstep-label-'+i);
+    const line=document.getElementById('wstep-line-'+i);
+    const done = i < n;
+    const active = i === n;
+    if(circ) {
+      circ.style.background = active?'var(--accent)':done?'var(--green)':'var(--surface2)';
+      circ.style.color = (active||done)?'#fff':'var(--text3)';
+      circ.style.border = (active||done)?'none':'2px solid var(--border)';
+      circ.textContent = done ? '✓' : String(i);
+    }
+    if(lbl) lbl.style.color = active?'var(--accent)':done?'var(--green)':'var(--text3)';
+    if(line) line.style.background = done?'var(--green)':'var(--border)';
+  }
+  // back btn
+  const back=document.getElementById('wiz-back-btn');
+  if(back) back.style.display = n>1 ? 'inline-flex':'none';
+  // next btn
+  const next=document.getElementById('wiz-next-btn');
+  if(next) next.textContent = n===WIZ_TOTAL ? 'Save Course ✓' : 'Next →';
+}
+
+function setJTLevel(idx, lvl, btn) {
+  const row = btn.closest('.jt-row-v2');
+  row.querySelectorAll('.jt-lvl-btn').forEach(b => {
+    b.style.background='transparent'; b.style.color='var(--text2)'; b.style.borderColor='var(--border)';
+  });
+  const colors={mandatory:'var(--red)',recommended:'var(--blue)',optional:'var(--text3)'};
+  btn.style.background=colors[lvl];btn.style.color='#fff';btn.style.borderColor=colors[lvl];
+  // toggle icon
+  const icon=document.getElementById('jt-icon-'+idx);
+  if(icon){icon.style.background=colors[lvl];icon.style.color='#fff';icon.style.borderColor=colors[lvl];icon.textContent='✓';}
+}
+
+function toggleJTSelect(idx) {
+  const icon=document.getElementById('jt-icon-'+idx);
+  if(icon) {
+    const off = icon.textContent==='⊗';
+    icon.textContent = off?'✓':'⊗';
+    icon.style.background = off?'var(--accent)':'var(--surface2)';
+    icon.style.color = off?'#fff':'var(--text3)';
+    icon.style.borderColor = off?'var(--accent)':'var(--border)';
+  }
+}
+
+function filterJTSearch(q) {
+  document.querySelectorAll('.jt-row-v2').forEach(row=>{
+    const txt=row.querySelector('div > div > div > div')?.textContent||'';
+    row.style.display = txt.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function selMatType(type, el) {
+  el.parentElement.querySelectorAll('div').forEach(d=>{
+    d.style.borderColor='var(--border)';d.style.background='var(--surface)';
+    d.querySelector('span:last-child').style.color='var(--text3)';
+  });
+  el.style.borderColor='var(--accent)';el.style.background='var(--accent-h)';
+  el.querySelector('span:last-child').style.color='var(--accent)';
+}
+
+function selMatVis(vis, el) {
+  el.parentElement.querySelectorAll('div[style]').forEach(d=>{
+    d.style.borderColor='var(--border)';d.style.background='var(--surface)';
+    const dot=d.querySelector('div');if(dot)dot.innerHTML='';
+  });
+  el.style.borderColor='var(--accent)';el.style.background='var(--accent-h)';
+  const dot=el.querySelector('div');if(dot)dot.innerHTML='<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></div>';
+}
+
+function addWizMat(input) {
+  const f=input.files[0];if(!f)return;
+  const list=document.getElementById('mat-wiz-list');if(!list)return;
+  const d=document.createElement('div');
+  d.style.cssText='display:flex;align-items:center;gap:9px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;';
+  d.innerHTML=`<span style="font-size:20px;flex-shrink:0;">📎</span><div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">${f.name}</div><div style="font-size:10px;color:var(--text3);">${(f.size/1024/1024).toFixed(1)} MB</div></div><span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--accent-h);color:var(--accent);">During Session</span><button onclick="this.closest('div').remove()" style="width:22px;height:22px;border:1px solid rgba(220,38,38,.2);background:rgba(220,38,38,.06);border-radius:5px;cursor:pointer;color:var(--red);font-size:11px;">✕</button>`;
+  list.appendChild(d);
+  showToast(f.name+' added','g');
+}
+
+// ══════════════════════════════════════════
 function initJTList() {
   jtLevels = {};
   const container = document.getElementById('jt-list');
