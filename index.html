@@ -46,6 +46,15 @@
   --topbar-bg:#ffffff;
 
   --sidebar-w:240px;--topbar-h:58px;--radius:12px;--radius-sm:7px;
+
+  /* ── Semantic shorthand backgrounds ── */
+  --accent-h:rgba(107,45,94,.08);
+  --rh:rgba(232,52,74,.08);
+  --gh:rgba(22,163,74,.08);
+  --bh:rgba(37,99,199,.08);
+  --oh:rgba(240,125,0,.08);
+  --ph:rgba(124,58,237,.08);
+  --yh:rgba(217,119,6,.08);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
@@ -246,6 +255,15 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);height
 /* ══ STAT CARDS ══ */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
 .sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:border-color .2s;cursor:default;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.sg,.stat-grid{display:grid;gap:12px;margin-bottom:16px;}
+.sg .sc.a,.stat-grid .sc.a{border-left:3px solid var(--accent);}
+.sg .sc.g,.stat-grid .sc.g{border-left:3px solid var(--green);}
+.sg .sc.r,.stat-grid .sc.r{border-left:3px solid var(--red);}
+.sg .sc.o,.stat-grid .sc.o{border-left:3px solid var(--orange);}
+.sg .sc.b,.stat-grid .sc.b{border-left:3px solid var(--blue);}
+.sc-l{font-size:11px;color:var(--text2);margin-bottom:5px;}
+.sc-v{font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.sc-s{font-size:10px;color:var(--text3);margin-top:2px;}
 .sc:hover{border-color:var(--border2);}
 .sc.a{border-left:3px solid var(--accent);background:linear-gradient(135deg,var(--surface),rgba(107,45,94,.03));}
 .sc.r{border-left:3px solid var(--red);}
@@ -1636,6 +1654,33 @@ tbody tr:hover td{color:var(--text);}
 //  STATE
 // ══════════════════════════════════════════
 let currentRole = 'admin';
+
+// ── GLOBAL HELPERS ──
+function fd(d) {
+  if(!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+}
+function dl(d) {
+  if(!d) return null;
+  return Math.ceil((new Date(d) - new Date()) / 86400000);
+}
+function cv(exp) { return exp && new Date(exp) > new Date(); }
+function scol(n, pm) {
+  if(!n && n !== 0) return 'var(--tx3)';
+  return n >= pm ? 'var(--gn)' : 'var(--rd)';
+}
+function mkAv(name, ini, col, sz) {
+  sz = sz || 28;
+  return `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col||'var(--ac)'};display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz*.35)}px;font-weight:800;color:#fff;flex-shrink:0;">${ini}</div>`;
+}
+function toast(msg, type) {
+  type = type || 'g';
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+  clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', 3200);
+}
+
 let notifOpen = false;
 
 const USERS = {
@@ -1686,14 +1731,11 @@ const SIDEBARS = {
   ],
   instructor: [
     { section:'My Portal', items:[
-      { id:'instr-dash', icon:'📊', label:'My Dashboard' },
-      { id:'instr-assign', icon:'📌', label:'My Assignments', badge:'2', badgeCls:'' },
-      { id:'instr-content', icon:'📖', label:'Course Content' },
-      { id:'instr-quiz', icon:'📝', label:'Quiz & Exam' },
-      { id:'instr-attendance', icon:'✅', label:'Attendance & Grades' },
-      { id:'instr-history', icon:'📋', label:'Session History' },
+      { id:'instr-dash',         icon:'📊', label:'Dashboard' },
+      { id:'instr-assign',       icon:'📌', label:'My Assignments', badge:'2', badgeCls:'nbg-r' },
+      { id:'instr-sessions',     icon:'🗓', label:'My Sessions' },
     ]},
-    { section:'Resources', items:[
+    { section:'Profile', items:[
       { id:'instr-profile', icon:'👤', label:'My Profile' },
     ]},
   ],
@@ -1828,10 +1870,10 @@ function getPageHTML(id) {
     // ── INSTRUCTOR PAGES ─────────────────
     'instr-dash':        () => instrDash(),
     'instr-assign':      () => instrAssignments(),
-    'instr-content':     () => instrContent(),
-    'instr-quiz':        () => instrQuiz(),
-    'instr-attendance':  () => instrAttendance(),
-    'instr-history':     () => instrHistory(),
+    'instr-sessions':    () => instrSessions(),
+    'instr-session-detail': () => instrSessionDetail(),
+    'instr-exam-review':    () => instrExamReview(),
+    'instr-exam-overview':  () => instrExamOverview(),
     'instr-profile':     () => instrProfile(),
 
     // ── EMPLOYEE PAGES ───────────────────
@@ -3035,611 +3077,1607 @@ ${[
 </tbody></table></div>`; }
 
 // ══════════════════════════════════════════
-//  INSTRUCTOR PAGES
+//  INSTRUCTOR PAGES — v3
 // ══════════════════════════════════════════
-function instrDash() { return `
-<div class="ph"><div class="pt">My Dashboard <small>Dr. Mohammed Al-Zahrani · Fire Safety Instructor</small></div></div>
-<div class="profile-hero">
-  <div class="ph-av" style="background:linear-gradient(135deg,var(--accent),#00876f);color:#000">MZ</div>
-  <div style="flex:1">
-    <div class="ph-name">Dr. Mohammed Al-Zahrani</div>
-    <div class="ph-role">🔥 Fire Safety Specialist · Internal Instructor</div>
-    <div class="ph-stats">
-      <div class="ph-stat"><div class="v">14</div><div class="l">Total Sessions</div></div>
-      <div class="ph-stat"><div class="v">2</div><div class="l">Upcoming</div></div>
-      <div class="ph-stat"><div class="v">187</div><div class="l">Employees Trained</div></div>
-      <div class="ph-stat"><div class="v">4.8⭐</div><div class="l">Rating</div></div>
-    </div>
-  </div>
-  <div style="text-align:center;padding:0 20px;border-left:1px solid var(--border)">
-    <div style="font-size:28px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace">2</div>
-    <div style="font-size:10px;color:var(--text3)">Pending<br>Assignments</div>
-  </div>
-</div>
-<div class="dash-grid">
-  <div style="display:flex;flex-direction:column;gap:14px;">
-    <div class="cc"><h3>My Upcoming Sessions</h3><div class="upcoming-list">
-      <div class="up-item" onclick="showPage('instr-assign')"><div class="up-date"><div class="up-day">24</div><div class="up-month">May</div></div><div class="up-info"><div class="up-title">Fire Safety & Emergency Response</div><div class="up-meta">09:00–17:00 · Training Center A, Room 101</div></div><span class="badge o">Pending</span></div>
-      <div class="up-item"><div class="up-date"><div class="up-day">05</div><div class="up-month">Jun</div></div><div class="up-info"><div class="up-title">First Aid & CPR Certification</div><div class="up-meta">09:00–13:00 · Medical Training Room</div></div><span class="badge o">Pending</span></div>
-    </div></div>
-    <div class="warn-box" style="display:flex;align-items:center;gap:10px;">⚠️ You have <strong>2 new session assignments</strong> waiting for your acceptance. <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="showPage('instr-assign')">View →</button></div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:14px;">
-    <div class="cc"><h3>My Performance</h3><div class="bar-chart">
-      ${[['May 24 — Fire Safety',0,'Upcoming'],['May 19 — Risk Assess.',88,'var(--accent)'],['May 10 — Fire Safety',92,'var(--accent)'],['Apr 28 — First Aid',84,'var(--blue)']].map(([n,p,c])=>`<div class="bar-row"><span class="br-name" style="width:130px">${n}</span>${p?`<div class="br-track"><div class="br-fill" style="width:${p}%;background:${c}"></div></div><span class="br-pct">${p}%</span>`:`<span style="font-size:10px;color:var(--text3)">— Upcoming</span>`}</div>`).join('')}
-    </div></div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:14px;">
-    <div class="cc"><h3>Quick Actions</h3>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button class="btn btn-primary btn-full" onclick="showPage('instr-assign')">📌 View My Assignments</button>
-        <button class="btn btn-outline btn-full" onclick="showPage('instr-attendance')">✅ Open Attendance Sheet</button>
-        <button class="btn btn-outline btn-full" onclick="showPage('instr-history')">📋 Session History</button>
-      </div>
-    </div>
-    <div class="cc"><h3>Qualified Courses</h3>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;">
-        ${['Fire Safety','Emergency Response','First Aid & CPR','Risk Assessment'].map(t=>`<span class="itag" style="font-size:10px">${t}</span>`).join('')}
-      </div>
-    </div>
-  </div>
-</div>`; }
 
-function instrAssignments() { return `
-<div class="ph"><div class="pt">My Assignments <small>Review and accept session assignments</small></div></div>
-<div class="ib-w" style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">📌 <strong>2 new assignments</strong> waiting for your response.</div>
-
-${[
-  {title:'Fire Safety & Emergency Response',date:'May 24, 2026',time:'09:00–17:00',loc:'Training Center A, Room 101',type:'Hybrid',typecls:'g',enrolled:20,note:'Please review fire safety slides 48h before session.',exam:'Final Assessment',examType:'online',examQ:3,examPass:70,attMin:80,bypass:true,
-   mats:[ {icon:'📕',name:'Module 1 — Introduction',size:'3.2 MB',vis:'Before Session',viscol:'var(--accent)'}, {icon:'📊',name:'Session Slides',size:'5.8 MB',vis:'During Session',viscol:'var(--blue)'}, {icon:'📕',name:'Post-Session Quiz Sheet',size:'0.4 MB',vis:'After — Pre-Quiz',viscol:'var(--orange)'} ],
+// ── DATA ──
+const ISESS = [
+  // IS01 — Upcoming (multi-day, online exam)
+  { id:'IS01', title:'Fire Safety & Emergency Response', cid:'C01',
+    days:[{date:'2026-06-15',ts:'09:00',te:'13:00'},{date:'2026-06-16',ts:'09:00',te:'13:00'}],
+    loc:'Training Center A, Room 101', type:'Hybrid', enrolled:5, max:20,
+    status:'upcoming',   // upcoming | inprogress | ended | review | confirmed
+    exam:{name:'Final Assessment', kind:'online', pm:70, totalMarks:6, qs:[
+      {id:1,type:'mcq',q:'What does PASS stand for?',opts:['Pull,Aim,Squeeze,Sweep','Push,Angle,Shoot,Spin','Pull,Angle,Spray,Sweep','Prepare,Aim,Squeeze,Spray'],correct:0,marks:2},
+      {id:2,type:'short',q:'Describe the evacuation procedure in 2 steps.',marks:3,modelAns:'1. Activate alarm and guide everyone to nearest exit. 2. Assemble at muster point and do headcount.'},
+      {id:3,type:'tf',q:'CO₂ extinguishers are suitable for Class B fires.',opts:['True','False'],correct:0,marks:1},
+    ]}, attMin:80, bypass:true, examDeadline:null,
+    parts:[
+      {n:'Nora Al-Qahtani',   ini:'NQ',col:'#7c3aed',dayAtt:{},bypassed:false,answers:[],confirmed:false},
+      {n:'Youssef Al-Hamdan', ini:'YH',col:'#1d4ed8',dayAtt:{},bypassed:false,answers:[],confirmed:false},
+      {n:'Mohammed Khalid',   ini:'MK',col:'#d97706',dayAtt:{},bypassed:false,answers:[],confirmed:false},
+      {n:'Fatima Al-Rashidi', ini:'FR',col:'#16a34a',dayAtt:{},bypassed:false,answers:[],confirmed:false},
+      {n:'Khalid Al-Anazi',   ini:'KA',col:'#6b2d5e',dayAtt:{},bypassed:false,answers:[],confirmed:false},
+    ],
+    mats:[{ic:'📕',n:'Module 1 — Introduction',sz:'3.2 MB',vis:'Before Session',vc:'var(--accent)',vb:'var(--accent-h)'},{ic:'📊',n:'Session Slides',sz:'5.8 MB',vis:'During Session',vc:'var(--blue)',vb:'var(--bh)'},{ic:'📕',n:'Post-Session Quiz Sheet',sz:'0.4 MB',vis:'After — Pre-Quiz',vc:'var(--orange)',vb:'var(--oh)'}]
   },
-  {title:'First Aid & CPR Certification',date:'Jun 5, 2026',time:'09:00–13:00',loc:'Medical Training Room',type:'In-Person',typecls:'o',enrolled:15,note:'',exam:'Practical Paper Exam',examType:'paper',examMarks:20,examPass:70,attMin:100,bypass:false,mats:[]},
-].map((s,si)=>`
-<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;">
 
-  <!-- Assignment header -->
-  <div style="padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2);">
-    <span class="badge bo" style="font-size:9px;">📌 Awaiting Response</span>
-    <span style="font-size:14px;font-weight:800;flex:1;">${s.title}</span>
-    <button class="btn btn-s btn-sm" onclick="declineAssign(this)">✗ Decline</button>
-    <button class="btn btn-p btn-sm" onclick="openModal('mo-accept-assign');showToast('Assignment accepted!','g')">✓ Accept</button>
+  // IS02 — In Progress, 2-day, ONLINE exam
+  { id:'IS02', title:'Risk Assessment Fundamentals', cid:'C05',
+    days:[{date:'2026-06-08',ts:'09:00',te:'17:00'},{date:'2026-06-09',ts:'09:00',te:'17:00'}],
+    loc:'Training Center B, Room 203', type:'In-Person', enrolled:4, max:20,
+    status:'inprogress',
+    exam:{name:'Final Assessment', kind:'online', pm:70, totalMarks:6, qs:[
+      {id:1,type:'mcq',q:'What is a risk matrix used for?',opts:['Tracking incidents','Evaluating probability vs severity','Scheduling training','Reporting accidents'],correct:1,marks:2},
+      {id:2,type:'short',q:'List two types of hazard controls.',marks:3,modelAns:'Engineering controls, Administrative controls, PPE (any two accepted)'},
+      {id:3,type:'tf',q:'Hazard identification must be done before risk assessment.',opts:['True','False'],correct:0,marks:1},
+    ]}, attMin:80, bypass:true, examDeadline:null,
+    parts:[
+      {n:'Nora Al-Qahtani',   ini:'NQ',col:'#7c3aed',dayAtt:{0:true}, bypassed:false,answers:[],confirmed:false},
+      {n:'Youssef Al-Hamdan', ini:'YH',col:'#1d4ed8',dayAtt:{0:true}, bypassed:false,answers:[],confirmed:false},
+      {n:'Mohammed Khalid',   ini:'MK',col:'#d97706',dayAtt:{0:false},bypassed:false,answers:[],confirmed:false},
+      {n:'Fatima Al-Rashidi', ini:'FR',col:'#16a34a',dayAtt:{0:true}, bypassed:false,answers:[],confirmed:false},
+    ],
+    mats:[{ic:'📕',n:'Risk Assessment Guide',sz:'2.8 MB',vis:'Before Session',vc:'var(--accent)',vb:'var(--accent-h)'},{ic:'📊',n:'Risk Matrix Templates',sz:'1.2 MB',vis:'During Session',vc:'var(--blue)',vb:'var(--bh)'}]
+  },
+
+  // IS02B — In Progress, single-day, PAPER exam
+  { id:'IS02B', title:'Emergency Evacuation Procedures', cid:'C04',
+    days:[{date:'2026-06-09',ts:'10:00',te:'14:00'}],
+    loc:'Training Center A, Room 101', type:'In-Person', enrolled:3, max:20,
+    status:'inprogress',
+    exam:{name:'Evacuation Paper Exam', kind:'paper', pm:70, totalMarks:20, examFile:'Evacuation_Exam.pdf', answerFile:'Evacuation_AnswerKey.pdf'},
+    attMin:100, bypass:true, examDeadline:null,
+    parts:[
+      {n:'Ahmed Mahmoud',  ini:'AM',col:'#dc2626',dayAtt:{},bypassed:false,answers:[],paperScore:null,confirmed:false},
+      {n:'Sara Al-Enazi',  ini:'SE',col:'#0891b2',dayAtt:{},bypassed:false,answers:[],paperScore:null,confirmed:false},
+      {n:'Faisal Rashid',  ini:'FR2',col:'#16a34a',dayAtt:{},bypassed:false,answers:[],paperScore:null,confirmed:false},
+    ],
+    mats:[{ic:'📕',n:'Evacuation Procedures Manual',sz:'3.5 MB',vis:'Before Session',vc:'var(--accent)',vb:'var(--accent-h)'}]
+  },
+
+  // IS03 — Session Ended, Online, waiting for submissions
+  { id:'IS03', title:'Chemical Hazard Awareness (GHS)', cid:'C02',
+    days:[{date:'2026-06-04',ts:'08:00',te:'12:00'}],
+    loc:'MS Teams', type:'Online', enrolled:4, max:25,
+    status:'ended',
+    exam:{name:'GHS Online Assessment', kind:'online', pm:70, totalMarks:5, qs:[
+      {id:1,type:'mcq',q:'What does GHS stand for?',opts:['Global Hazard System','Globally Harmonized System','General Health Standard','Global Health Safety'],correct:1,marks:2},
+      {id:2,type:'short',q:'Name one type of GHS pictogram and what it means.',marks:2,modelAns:'e.g. Skull & crossbones = acute toxicity. Flame = flammable. Exclamation = irritant.'},
+      {id:3,type:'tf',q:'GHS labels must include a signal word (Danger or Warning).',opts:['True','False'],correct:0,marks:1},
+    ]}, attMin:100, bypass:false,
+    examDeadline: new Date(Date.now() + 28*60*60*1000).toISOString(),
+    parts:[
+      {n:'Ahmed Mahmoud',  ini:'AM',col:'#dc2626',dayAtt:{0:true}, bypassed:false,answers:[],confirmed:false},
+      {n:'Sara Al-Enazi',  ini:'SE',col:'#0891b2',dayAtt:{0:true}, bypassed:false,answers:[],confirmed:false},
+      {n:'Faisal Rashid',  ini:'FR2',col:'#16a34a',dayAtt:{0:true},bypassed:false,answers:[],confirmed:false},
+      {n:'Lama Al-Otaibi', ini:'LA',col:'#7c3aed',dayAtt:{0:false},bypassed:false,answers:[],confirmed:false},
+    ],
+    mats:[{ic:'📕',n:'GHS Reference Guide',sz:'2.1 MB',vis:'Before Session',vc:'var(--accent)',vb:'var(--accent-h)'}]
+  },
+
+  // IS04 — Need Review, Online, submissions in, short answer needs grading
+  { id:'IS04', title:'First Aid & CPR Certification', cid:'C03',
+    days:[{date:'2026-05-29',ts:'09:00',te:'13:00'}],
+    loc:'Medical Training Room', type:'In-Person', enrolled:4, max:20,
+    status:'review',
+    exam:{name:'First Aid Assessment', kind:'online', pm:70, totalMarks:5, qs:[
+      {id:1,type:'mcq',q:'What is the correct compression rate for CPR?',opts:['60-80/min','100-120/min','140-160/min','80-100/min'],correct:1,marks:2},
+      {id:2,type:'short',q:'Describe the recovery position and when to use it.',marks:2,modelAns:'Place patient on side, upper leg forward, head tilted back. Use when unconscious but breathing normally.'},
+      {id:3,type:'tf',q:'You should remove a helmet from an unconscious motorcyclist before giving first aid.',opts:['True','False'],correct:1,marks:1},
+    ]}, attMin:80, bypass:true,
+    examDeadline: new Date(Date.now() - 2*60*60*1000).toISOString(), // passed
+    parts:[
+      {n:'Nora Al-Qahtani',   ini:'NQ',col:'#7c3aed',dayAtt:{0:true}, bypassed:false,confirmed:false,
+       answers:[{qid:1,sel:1,autoScore:2},{qid:2,text:'Lay the person on their side with top knee bent forward. Tilt head back to open airway. Use when unconscious but breathing.',manualScore:null},{qid:3,sel:1,autoScore:1}]},
+      {n:'Youssef Al-Hamdan', ini:'YH',col:'#1d4ed8',dayAtt:{0:true}, bypassed:false,confirmed:false,
+       answers:[{qid:1,sel:1,autoScore:2},{qid:2,text:'Put them on their side and tilt the head back. Used for unconscious patients who are breathing.',manualScore:null},{qid:3,sel:0,autoScore:0}]},
+      {n:'Mohammed Khalid',   ini:'MK',col:'#d97706',dayAtt:{0:false},bypassed:true, confirmed:false,
+       answers:[{qid:1,sel:2,autoScore:0},{qid:2,text:'No answer.',manualScore:null},{qid:3,sel:1,autoScore:1}]},
+      {n:'Fatima Al-Rashidi', ini:'FR',col:'#16a34a',dayAtt:{0:true}, bypassed:false,confirmed:false,
+       answers:[{qid:1,sel:1,autoScore:2},{qid:2,text:'Recovery position: person on side, head tilted, used when breathing but unconscious to prevent choking.',manualScore:null},{qid:3,sel:1,autoScore:1}]},
+    ],
+    mats:[{ic:'📕',n:'First Aid Manual',sz:'4.1 MB',vis:'Before Session',vc:'var(--accent)',vb:'var(--accent-h)'}]
+  },
+
+  // IS05 — Need Review, Paper exam, enter scores
+  { id:'IS05', title:'Emergency Evacuation Procedures', cid:'C04',
+    days:[{date:'2026-05-26',ts:'10:00',te:'14:00'}],
+    loc:'Training Center A, Room 101', type:'In-Person', enrolled:3, max:20,
+    status:'review',
+    exam:{name:'Evacuation Paper Exam', kind:'paper', pm:70, totalMarks:20, examFile:'Evacuation_Exam.pdf', answerFile:'Evacuation_AnswerKey.pdf'},
+    examDeadline:null,
+    parts:[
+      {n:'Nora Al-Qahtani',   ini:'NQ',col:'#7c3aed',dayAtt:{0:true}, bypassed:false,confirmed:false,answers:[],paperScore:null},
+      {n:'Youssef Al-Hamdan', ini:'YH',col:'#1d4ed8',dayAtt:{0:true}, bypassed:false,confirmed:false,answers:[],paperScore:null},
+      {n:'Mohammed Khalid',   ini:'MK',col:'#d97706',dayAtt:{0:false},bypassed:false,confirmed:false,answers:[],paperScore:null},
+    ],
+    mats:[{ic:'📕',n:'Evacuation Procedures Manual',sz:'3.5 MB',vis:'Before Session',vc:'var(--accent)',vb:'var(--accent-h)'}]
+  },
+];
+
+
+let CSID='IS01', CURR_DAY=0;
+const IG=id=>ISESS.find(s=>s.id===id)||ISESS[0];
+
+// Status helpers
+const isUpcoming   = s => s.status==='upcoming';
+const isInProgress = s => s.status==='inprogress';
+const isEnded      = s => s.status==='ended';
+const isReview     = s => s.status==='review';
+const isConfirmedS = s => s.status==='confirmed';
+const isActive     = s => ['inprogress','ended','review'].includes(s.status);
+const isDone       = s => ['ended','review','confirmed'].includes(s.status);
+
+function setStatus(id, newStatus){
+  const s=IG(id);if(s)s.status=newStatus;
+}
+
+const STATUS_BADGE = {
+  upcoming:   {label:'Upcoming',     color:'var(--blue)',   bg:'rgba(29,78,216,.08)',  icon:'📅'},
+  inprogress: {label:'In Progress',  color:'var(--green)',  bg:'rgba(22,163,74,.10)',  icon:'🟢'},
+  ended:      {label:'Session Ended',color:'var(--orange)', bg:'rgba(217,119,6,.09)',  icon:'⏹'},
+  review:     {label:'Need Review',  color:'var(--red)',    bg:'rgba(220,38,38,.09)',  icon:'⚠️'},
+  confirmed:  {label:'Confirmed',    color:'var(--green)',  bg:'rgba(22,163,74,.08)',  icon:'✅'},
+};
+
+// ── Attendance helpers ──
+function attPct(p, totalDays) {
+  if(totalDays <= 1) return null; // single-day: no percentage, just present/absent
+  const attended = Object.values(p.dayAtt||{}).filter(Boolean).length;
+  return Math.round(attended / totalDays * 100);
+}
+function isEligible(p, s) {
+  const pct = attPct(p, s.days.length);
+  if(s.days.length === 1) {
+    const present = p.dayAtt && p.dayAtt[0] === true;
+    return present || (s.bypass && p.bypassed);
+  }
+  return (pct !== null && pct >= s.attMin) || (s.bypass && p.bypassed);
+}
+
+
+// ══ DASHBOARD ════════════════════════════════════════════════════
+function instrDash(){
+  const up=ISESS.filter(s=>s.status==='upcoming');
+  const active=ISESS.filter(s=>s.status==='inprogress');
+  const needReview=ISESS.filter(s=>s.status==='review');
+  const done=ISESS.filter(s=>s.status==='confirmed');
+  return `
+<style>
+.id-kpi{background:var(--surface);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 6px rgba(0,0,0,.06);border:1px solid var(--border);position:relative;overflow:hidden;}
+.id-kpi::after{content:attr(data-icon);position:absolute;right:14px;top:14px;font-size:28px;opacity:.12;}
+.id-kpi .kv{font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.id-kpi .kl{font-size:11px;color:var(--text2);font-weight:500;}
+.id-kpi .ks{font-size:10px;color:var(--text3);}
+.id-sess{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;background:var(--surface);}
+.id-sess:hover{border-color:var(--accent);background:var(--accent-h);transform:translateX(3px);}
+.id-day-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:16px;font-size:10px;font-weight:700;}
+</style>
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;">
+  <div>
+    <div style="font-size:22px;font-weight:800;margin-bottom:2px;">Good morning, Dr. Mohammed 👋</div>
+    <div style="font-size:13px;color:var(--text2);">Fire Safety Specialist · Here's your overview</div>
   </div>
-
-  <!-- Session info grid -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid var(--border);">
-    ${[['📅 Date',s.date],['⏰ Time',s.time],['📍 Location',s.loc],['🏷 Type',`<span class="badge ${s.typecls}">${s.type}</span>`],['👥 Enrolled',s.enrolled+' participants'],['👔 Assigned By','Zaid Hadi (Admin)']].map(([l,v],i)=>`
-    <div style="padding:11px 14px;border-right:${i%3!==2?'1px solid var(--border)':'none'};border-bottom:${i<3?'1px solid var(--border)':'none'};">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">${l.split(' ').slice(1).join(' ')}</div>
-      <div style="font-size:12px;font-weight:600;">${v}</div>
-    </div>`).join('')}
+  <div style="display:flex;gap:8px;">
+    <button onclick="showPage('instr-assign')" style="padding:9px 18px;background:var(--red);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px;">📌 2 Assignments <span style="background:rgba(255,255,255,.3);border-radius:10px;padding:1px 7px;">Pending</span></button>
   </div>
+</div>
 
-  ${s.note?`<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(107,45,94,.03);"><div style="font-size:11px;color:var(--text2);">📝 <strong>Admin Note:</strong> ${s.note}</div></div>`:''}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;">
+  <div class="id-kpi" data-icon="📅" style="border-left:3px solid var(--accent);">
+    <div class="kv" style="color:var(--accent);">${up.length}</div>
+    <div class="kl">Upcoming</div>
+    <div class="ks">${up.reduce((s,x)=>s+x.days.length,0)} days scheduled</div>
+  </div>
+  <div class="id-kpi" data-icon="🟢" style="border-left:3px solid var(--green);">
+    <div class="kv" style="color:var(--green);">${active.length}</div>
+    <div class="kl">In Progress</div>
+    <div class="ks">Active now</div>
+  </div>
+  <div class="id-kpi" data-icon="⚠️" style="border-left:3px solid var(--orange);">
+    <div class="kv" style="color:${needReview.length>0?'var(--orange)':'var(--text2)'};">${needReview.length}</div>
+    <div class="kl">Need Review</div>
+    <div class="ks">${needReview.length>0?'Action required':'All clear'}</div>
+  </div>
+  <div class="id-kpi" data-icon="✅" style="border-left:3px solid var(--blue);">
+    <div class="kv" style="color:var(--blue);">${done.length}</div>
+    <div class="kl">Confirmed</div>
+    <div class="ks">This quarter</div>
+  </div>
+</div>
 
-  <!-- Collapsible sections -->
-  <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:18px;">
 
-    <!-- Exam -->
-    <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;">
-      <div onclick="toggleSec('asec-exam-${si}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:var(--surface2);transition:background .12s;" onmouseover="this.style.background='var(--surf3)'" onmouseout="this.style.background='var(--surface2)'">
-        <span style="font-size:13px;">📝</span>
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:700;">Exam: ${s.exam}</div>
-          <div style="display:flex;gap:7px;margin-top:3px;">
-            <span class="badge ${s.examType==='online'?'bb':'bo'}" style="font-size:9px;">${s.examType==='online'?'💻 Online':'📄 Paper'}</span>
-            <span style="font-size:10px;color:var(--text2);">${s.examType==='online'?s.examQ+' questions · '+s.examMarks+'marks':'20 marks'} · Pass: ${s.examPass}%</span>
+  <!-- Upcoming sessions -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:13px;font-weight:700;">📅 Upcoming Sessions</div>
+      <button onclick="showPage('instr-sessions')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;">View all →</button>
+    </div>
+    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+      ${up.map(s=>{
+        const first=s.days[0];const last=s.days[s.days.length-1];
+        const dl=Math.ceil((new Date(first.date)-new Date())/86400000);
+        const isMulti=s.days.length>1;
+        return `<div class="id-sess" onclick="CSID='${s.id}';showPage('instr-session-detail')">
+          <div style="width:42px;text-align:center;flex-shrink:0;">
+            <div style="font-size:20px;font-weight:800;color:var(--accent);line-height:1;">${new Date(first.date).getDate()}</div>
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;">${new Date(first.date).toLocaleString('en',{month:'short'})}</div>
           </div>
-        </div>
-        <span style="font-size:11px;color:var(--text3);transition:transform .2s;" id="asec-arr-exam-${si}">▾</span>
-      </div>
-      <div id="asec-exam-${si}" style="display:none;padding:13px 14px;border-top:1px solid var(--border);">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;flex:1;"><div style="font-size:10px;color:var(--text3);">Type</div><div style="font-size:13px;font-weight:700;margin-top:2px;">${s.examType==='online'?'💻 Online':'📄 Paper'}</div></div>
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;flex:1;"><div style="font-size:10px;color:var(--text3);">Pass Mark</div><div style="font-size:18px;font-weight:800;color:var(--green);font-family:'JetBrains Mono',monospace;margin-top:2px;">${s.examPass}%</div></div>
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;flex:1;"><div style="font-size:10px;color:var(--text3);">Min Attendance</div><div style="font-size:18px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;margin-top:2px;">${s.attMin}%</div></div>
-          <div style="background:${s.bypass?'rgba(22,163,74,.07)':'rgba(220,38,38,.06)'};border:1px solid ${s.bypass?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'};border-radius:8px;padding:10px 16px;text-align:center;flex:1;"><div style="font-size:10px;color:var(--text3);">Bypass</div><div style="font-size:12px;font-weight:700;color:${s.bypass?'var(--green)':'var(--red)'};margin-top:4px;">${s.bypass?'✓ Allowed':'✗ Not Allowed'}</div></div>
-        </div>
-        ${s.examType==='paper'?`<button class="btn btn-s btn-sm" onclick="showToast('Downloading exam files','b')">📥 Download Exam Files</button>`:`<div class="ib-i" style="font-size:11px;">Questions will be sent to trainees automatically when you end the session.</div>`}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.title}</div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--text2);">${first.ts}–${first.te}</span>
+              ${isMulti?`<span class="id-day-chip" style="background:rgba(107,45,94,.1);color:var(--accent);">📅 ${s.days.length} days</span>`:''}
+              <span class="id-day-chip" style="background:rgba(29,78,216,.08);color:var(--blue);">${s.type}</span>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:11px;font-weight:700;color:${dl<7?'var(--red)':'var(--text2)'};">${dl}d</div>
+            <div style="font-size:10px;color:var(--text3);">${s.enrolled}/${s.max}</div>
+          </div>
+        </div>`;
+      }).join('')||'<div style="font-size:12px;color:var(--text3);padding:8px;">No upcoming sessions.</div>'}
+    </div>
+  </div>
+
+  <!-- Right col -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    <!-- Next 7 days timeline -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="padding:13px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">🗓 This Week</div>
+      <div style="padding:12px 14px;">
+        ${(()=>{
+          const days=[];
+          for(let di=0;di<7;di++){const d=new Date();d.setDate(d.getDate()+di);days.push(d);}
+          return days.map((d,di)=>{
+            const ds=d.toISOString().split('T')[0];
+            const sesOnDay=ISESS.filter(s=>s.days.some(dd=>dd.date===ds));
+            const isToday=di===0;
+            return `<div style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--border);">
+              <div style="width:30px;text-align:center;flex-shrink:0;">
+                <div style="font-size:13px;font-weight:${isToday?'800':'500'};color:${isToday?'var(--accent)':'var(--text2)'};">${d.getDate()}</div>
+                <div style="font-size:9px;color:var(--text3);">${d.toLocaleString('en',{weekday:'short'})}</div>
+              </div>
+              <div style="flex:1;">
+                ${sesOnDay.length?sesOnDay.map(s=>`<div onclick="CSID='${s.id}';showPage('instr-session-detail')" style="font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;padding:2px 0;">${s.title.split(' ').slice(0,3).join(' ')}</div>`).join(''):
+                `<div style="font-size:10px;color:var(--text3);">No session</div>`}
+              </div>
+              ${sesOnDay.length?`<div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>`:''}
+            </div>`;
+          }).join('');
+        })()}
       </div>
     </div>
 
-    <!-- Materials -->
-    <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;">
-      <div onclick="toggleSec('asec-mat-${si}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:var(--surface2);transition:background .12s;" onmouseover="this.style.background='var(--surf3)'" onmouseout="this.style.background='var(--surface2)'">
-        <span style="font-size:13px;">📁</span>
-        <div style="flex:1;"><div style="font-size:12px;font-weight:700;">Course Materials</div><div style="font-size:10px;color:var(--text3);margin-top:2px;">${s.mats.length} file${s.mats.length!==1?'s':''} attached by admin</div></div>
-        <span style="font-size:11px;color:var(--text3);transition:transform .2s;" id="asec-arr-mat-${si}">▾</span>
-      </div>
-      <div id="asec-mat-${si}" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
-        ${s.mats.length===0?`<div class="ib-i" style="font-size:11px;">No materials attached for this session yet.</div>`:s.mats.map(m=>`
-        <div style="display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:6px;">
-          <span style="font-size:18px;">${m.icon}</span>
-          <div style="flex:1;"><div style="font-size:12px;font-weight:600;">${m.name}</div><div style="font-size:10px;color:var(--text3);">${m.size}</div></div>
-          <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(107,45,94,.08);color:${m.viscol};">${m.vis}</span>
-          <button class="btn btn-s btn-sm" onclick="showToast('Downloading...','b')" style="font-size:9px;">📥</button>
-        </div>`).join('')}
-        ${s.mats.length>0?`
-        <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
-          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px;">📎 Upload Optional Files for Trainees</div>
-          <label style="display:flex;align-items:center;gap:9px;padding:10px 13px;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;background:var(--surface);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-            <input type="file" style="display:none" onchange="showToast('File uploaded: '+this.files[0].name,'g')">
-            <span style="font-size:20px;">📎</span>
-            <div><div style="font-size:12px;font-weight:600;">Click to upload optional file</div><div style="font-size:10px;color:var(--text3);">PDF, PPT, DOCX, MP4 · Extra materials for trainees</div></div>
-          </label>
-        </div>`:''}
-      </div>
+    <!-- Quick stats -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;">📊 Performance</div>
+      ${done.filter(s=>s.parts?.some(p=>p.answers)).map(s=>{
+        const auto=s.parts.filter(p=>p.present||p.bypassed);
+        const totMarks=s.exam.kind==='paper'?(s.exam.totalMarks||20):(s.exam.qs||[]).reduce((a,q)=>a+q.marks,0);
+        const scores=auto.map(p=>{const mc=p.answers?.filter(a=>a.autoScore!=null).reduce((a,x)=>a+x.autoScore,0)||0;return mc;}).filter(x=>x>0);
+        const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+        const pct=avg&&totMarks?Math.round(avg/totMarks*100):null;
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+            <span style="color:var(--text2);">${s.title.split(' ').slice(0,3).join(' ')}</span>
+            <span style="font-weight:700;color:var(--accent);">${pct??'—'}%</span>
+          </div>
+          <div style="height:7px;background:var(--surface3);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${pct||0}%;background:${pct>=70?'var(--green)':'var(--orange)'};border-radius:4px;"></div>
+          </div>
+        </div>`;
+      }).join('')||'<div style="font-size:11px;color:var(--text3);">No data yet.</div>'}
     </div>
 
   </div>
-</div>`).join('')}
-
-<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Accepted Sessions</div>
-<div class="tw"><table><thead><tr><th>Course</th><th>Date</th><th>Enrolled</th><th>Status</th><th></th></tr></thead><tbody>
-<tr><td style="font-weight:600;color:var(--text)">Risk Assessment Fundamentals</td><td>May 19, 2026</td><td>18</td><td><span class="badge bg">Accepted</span></td><td><button class="btn btn-sm btn-outline" onclick="showPage('instr-attendance')">Open Sheet</button></td></tr>
-<tr><td style="font-weight:600;color:var(--text)">Fire Safety & Emergency Response</td><td>May 10, 2026</td><td>20</td><td><span class="badge bm">Completed</span></td><td><button class="btn btn-sm btn-outline" onclick="showPage('instr-history')">View Results</button></td></tr>
-</tbody></table></div>`; }
-
-function toggleSec(id) {
-  const el  = document.getElementById(id);
-  const arr = document.getElementById(id.replace('asec-','asec-arr-'));
-  if(!el) return;
-  const open = el.style.display !== 'none';
-  el.style.display = open ? 'none' : 'block';
-  if(arr) arr.style.transform = open ? '' : 'rotate(180deg)';
-}
-
-
-
-
-function instrContent() {
-  return `
-<div class="ph">
-  <div><div class="pt">My Sessions</div><div class="ps">Sessions assigned to you</div></div>
 </div>
 
-<!-- Session selector -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-  <span style="font-size:11px;font-weight:600;color:var(--text2);">Session:</span>
-  <select class="form-select" style="width:auto;min-width:260px;" onchange="showToast('Switched to '+this.options[this.selectedIndex].text,'b')">
-    <option>🔥 Fire Safety & Emergency Response — May 24, 2026</option>
-    <option>⚕️ First Aid & CPR Certification — Jun 5, 2026</option>
-  </select>
-  <span class="badge bo">Upcoming</span>
-</div>
-
-<!-- Session overview profile -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-
-  <!-- Info -->
-  <div class="card"><div class="ch"><h3>📋 Session Info</h3></div><div class="cb">
-    ${[['Course','Fire Safety & Emergency Response'],['Date','May 24, 2026'],['Time','09:00 – 17:00'],['Location','Training Center A, Room 101'],['Type','Hybrid'],['Enrolled','20 participants'],['Assigned By','Zaid Hadi (Admin)']].map(([l,v])=>`
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--text2);">${l}</span><span style="font-weight:600;">${v}</span></div>`).join('')}
-  </div></div>
-
-  <!-- Exam & Attendance rules -->
-  <div class="card"><div class="ch"><h3>📝 Exam & Rules</h3></div><div class="cb">
-    <div style="display:flex;flex-direction:column;gap:9px;">
-      <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
-        <div><div style="font-size:11px;color:var(--text2);">Selected Exam</div><div style="font-size:13px;font-weight:700;margin-top:2px;">Final Assessment</div></div>
-        <span class="badge bb" style="align-self:center;">💻 Online</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);">Pass Mark</div><div style="font-size:20px;font-weight:800;color:var(--green);font-family:'JetBrains Mono',monospace;">70%</div></div>
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text3);">Min Attendance</div><div style="font-size:20px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;">80%</div></div>
-      </div>
-      <div style="background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--green);">✓ You <strong>can</strong> bypass attendance rule for individual trainees</div>
-    </div>
-  </div></div>
-
-</div>
-
-<!-- Course Materials (read-only) -->
-<div class="card" style="margin-bottom:14px;">
-  <div class="ch"><h3>📁 Course Materials</h3><span style="font-size:11px;color:var(--text3);">Set by admin · 3 files</span></div>
-  <div class="cb" style="display:flex;flex-direction:column;gap:7px;">
-    ${[
-      {icon:'📕',name:'Module 1 — Introduction to Fire Safety',size:'3.2 MB',vis:'Before Session',viscol:'var(--accent)',visbg:'var(--accent-h)'},
-      {icon:'📊',name:'Session Overview Slides',size:'5.8 MB',vis:'During Session',viscol:'var(--blue)',visbg:'rgba(29,78,216,.08)'},
-      {icon:'📕',name:'Post-Session Quiz Sheet',size:'0.4 MB',vis:'After — Pre-Quiz',viscol:'var(--orange)',visbg:'rgba(217,119,6,.08)'},
-    ].map(m=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
-      <span style="font-size:20px;flex-shrink:0;">${m.icon}</span>
-      <div style="flex:1;"><div style="font-size:12px;font-weight:600;">${m.name}</div><div style="font-size:10px;color:var(--text3);">${m.size}</div></div>
-      <span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:7px;background:${m.visbg};color:${m.viscol};white-space:nowrap;">${m.vis}</span>
-      <button class="btn btn-s btn-sm" onclick="showToast('Downloading...','b')" style="font-size:10px;">📥</button>
-    </div>`).join('')}
-  </div>
-</div>
-
-<!-- Optional files upload -->
-<div class="card">
-  <div class="ch"><h3>📎 My Optional Files for Trainees</h3><span style="font-size:11px;color:var(--text3);">Supplementary materials you want to share</span></div>
-  <div class="cb">
-    <!-- Uploaded -->
-    <div id="opt-files-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px;">
-      <div class="opt-file" style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
-        <span style="font-size:18px;">📘</span>
-        <div style="flex:1;"><div style="font-size:12px;font-weight:600;">Additional Safety Reference — NFPA Summary</div><div style="font-size:10px;color:var(--text3);">2.1 MB · Added by you</div></div>
-        <button class="btn btn-d btn-sm" onclick="this.closest('.opt-file').remove()" style="font-size:10px;">✕ Remove</button>
-      </div>
-    </div>
-    <!-- Upload zone -->
-    <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px dashed var(--border);border-radius:9px;cursor:pointer;background:var(--surface2);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-      <input type="file" style="display:none" onchange="addOptFile(this)">
-      <span style="font-size:22px;">📎</span>
-      <div><div style="font-size:12px;font-weight:600;">Click to upload optional file</div><div style="font-size:10px;color:var(--text3);">PDF, PPT, DOCX, MP4 — max 200MB</div></div>
-    </label>
-  </div>
-</div>
-`;
-}
-
-function addOptFile(input) {
-  const f = input.files[0]; if(!f) return;
-  const list = document.getElementById('opt-files-list');
-  if(!list) return;
-  const div = document.createElement('div');
-  div.className = 'opt-file';
-  div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;';
-  div.innerHTML = `<span style="font-size:18px;">📎</span><div style="flex:1;"><div style="font-size:12px;font-weight:600;">${f.name}</div><div style="font-size:10px;color:var(--text3);">${(f.size/1024/1024).toFixed(1)} MB · Just uploaded</div></div><button class="btn btn-d btn-sm" onclick="this.closest('.opt-file').remove()" style="font-size:10px;">✕ Remove</button>`;
-  list.appendChild(div);
-  showToast(f.name + ' uploaded', 'g');
-}
-
-
-function instrQuiz() {
-  const QS = [
-    { num:1, type:'Short Answer',    text:'What does SDS stand for?', marks:1 },
-    { num:2, type:'Multiple Choice', text:'Which PPE is required when handling corrosive chemicals?', marks:1,
-      opts:['Safety glasses only','Gloves and safety glasses','Full face shield, chemical gloves, and apron','Regular work gloves'], correct:2 },
-    { num:3, type:'True / False',    text:'GHS labels are required on all hazardous chemical containers.', marks:1, opts:['True','False'], correct:0 },
-  ];
-  const total  = QS.reduce((s,q)=>s+q.marks,0);
-  const passMk = Math.ceil(total*70/100);
-
-  const renderOpts = q => {
-    if(q.type==='Short Answer') return `
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;font-size:12px;color:var(--text3);font-style:italic;min-height:60px;">Model answer for grading reference...</div>`;
-    if(q.type==='Multiple Choice') return q.opts.map((o,i)=>`
-      <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;">
-        <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${i===q.correct?'var(--green)':'var(--border)'};background:${i===q.correct?'var(--green)':'transparent'};flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-          ${i===q.correct?'<div style="width:8px;height:8px;border-radius:50%;background:#fff"></div>':''}
-        </div>
-        <div style="flex:1;padding:8px 11px;border:1.5px solid ${i===q.correct?'var(--green)':'var(--border)'};border-radius:7px;font-size:12px;background:${i===q.correct?'rgba(22,163,74,.06)':'var(--surface2)'};">${o}</div>
-        ${i===q.correct?'<span class="badge bg" style="font-size:9px">✓ Correct</span>':''}
-      </div>`).join('');
-    if(q.type==='True / False') return `
-      <div style="display:flex;gap:10px;margin-top:4px;">
-        <div style="flex:1;padding:10px;border:2px solid ${q.correct===0?'var(--green)':'var(--border)'};border-radius:8px;text-align:center;font-size:13px;font-weight:700;color:${q.correct===0?'var(--green)':'var(--text2)'};background:${q.correct===0?'rgba(22,163,74,.06)':'var(--surface2)'};"> ✓ True ${q.correct===0?'<span class="badge bg" style="font-size:9px;margin-left:4px">Correct</span>':''}</div>
-        <div style="flex:1;padding:10px;border:2px solid ${q.correct===1?'var(--red)':'var(--border)'};border-radius:8px;text-align:center;font-size:13px;font-weight:700;color:${q.correct===1?'var(--red)':'var(--text2)'};background:${q.correct===1?'rgba(220,38,38,.06)':'var(--surface2)'};">✗ False ${q.correct===1?'<span class="badge br" style="font-size:9px;margin-left:4px">Correct</span>':''}</div>
-      </div>`;
-    return '';
-  };
-
-  return `
-<div class="ph">
-  <div><div class="pt">Quiz &amp; Exam</div><div class="ps">Assessment for: Fire Safety &amp; Emergency Response</div></div>
-  <div class="ph-actions">
-    <select style="background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:7px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;">
-      <option>Fire Safety &amp; Emergency Response — 2026-05-24</option>
-      <option>Chemical Hazard Awareness — 2026-05-26</option>
-    </select>
-    <button class="btn btn-outline btn-sm" onclick="showToast('Saved as draft','b')">Save Draft</button>
-    <button class="btn btn-primary btn-sm" onclick="showToast('Quiz published!','g')">Publish Quiz</button>
-  </div>
-</div>
-
-<!-- Settings bar -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:14px;display:flex;align-items:center;">
-  <div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Quiz Type</div>
-    <div style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-      <div style="padding:8px 20px;font-size:12px;font-weight:700;background:var(--accent);color:#fff;">💻 Online</div>
-      <div style="padding:8px 20px;font-size:12px;font-weight:700;background:var(--surface);color:var(--text2);">📄 Paper</div>
-    </div>
-  </div>
-  <div style="width:1px;background:var(--border);align-self:stretch;margin:0 28px;"></div>
-  <div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Total Marks</div>
-    <div style="display:flex;align-items:baseline;gap:8px;">
-      <span style="font-size:36px;font-weight:800;font-family:'JetBrains Mono',monospace;">${total}</span>
-      <div style="font-size:10px;color:var(--text3);">total marks<br>for this quiz</div>
-    </div>
-  </div>
-  <div style="width:1px;background:var(--border);align-self:stretch;margin:0 28px;"></div>
+<!-- Pending assignments banner -->
+<div style="background:linear-gradient(135deg,var(--accent),#531f49);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:16px;color:#fff;">
+  <span style="font-size:28px;">📌</span>
   <div style="flex:1;">
-    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Pass Mark (%)</div>
-    <div style="display:flex;align-items:baseline;gap:8px;">
-      <span style="font-size:36px;font-weight:800;font-family:'JetBrains Mono',monospace;">70</span>
-      <div style="font-size:10px;color:var(--text3);">% to pass<br>the quiz</div>
-    </div>
+    <div style="font-size:14px;font-weight:800;margin-bottom:3px;">2 Pending Assignments</div>
+    <div style="font-size:12px;opacity:.85;">Fire Safety — May 24 &nbsp;·&nbsp; Chemical Hazard — May 26</div>
   </div>
-  <div style="width:1px;background:var(--border);align-self:stretch;margin:0 28px;"></div>
-  <div style="text-align:right;">
-    <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">To pass, trainee needs</div>
-    <div style="font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);">${passMk} / ${total}</div>
-    <div style="font-size:11px;color:var(--text3);">marks (70%)</div>
-  </div>
-</div>
-
-<!-- Notice -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;">
-  <span style="font-size:16px;flex-shrink:0;">ℹ️</span>
-  <div style="font-size:12px;color:var(--text2);line-height:1.6;">The quiz deadline (how long trainees have to submit) is set when you <strong style="color:var(--accent);">End Session</strong>.<br>You can choose hours, days, or weeks.</div>
-</div>
-
-<!-- Questions -->
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-  <div style="font-size:13px;font-weight:700;">${QS.length} questions</div>
-  <button class="btn btn-outline btn-sm" onclick="showToast('Add question','b')">+ Add Question</button>
-</div>
-
-${QS.map(q=>`
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;">
-  <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);">
-    <div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${q.num}</div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--text2);">${q.type}</div>
-    <div style="margin-left:auto;font-size:12px;color:var(--text2);">Marks: <strong style="color:var(--text);">${q.marks}</strong></div>
-  </div>
-  <div style="padding:14px 16px;">
-    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">${q.text}</div>
-    ${renderOpts(q)}
-  </div>
-</div>`).join('')}
-`;
-}
-
-
-function instrAttendance() { return `
-<div class="ph"><div class="pt">Attendance & Grades <small>Record attendance and scores</small></div><div class="ph-actions"><button class="btn btn-outline btn-sm" onclick="markAllPresent()">✅ Mark All Present</button><button class="btn btn-primary btn-sm" onclick="openModal('mo-save-attendance')">💾 Submit</button></div></div>
-<div class="sess-tabs">
-  <div class="stab active">Risk Assessment — May 19</div>
-  <div class="stab" onclick="showToast('No more open sessions','b')">First Aid — Jun 5</div>
-</div>
-<div class="assign-card">
-  <div class="assign-icon">📋</div>
-  <div class="assign-info">
-    <div class="assign-title">Risk Assessment Fundamentals</div>
-    <div class="assign-meta">📅 May 19, 2026 · 09:00–13:00 · Room 201 · In-Person · 18 enrolled</div>
-  </div>
-  <div style="text-align:center;padding:0 16px;border-left:1px solid var(--border)"><div style="font-size:20px;font-weight:800;color:var(--accent)">14/18</div><div style="font-size:10px;color:var(--text3)">Present</div></div>
-  <div style="text-align:center;padding:0 16px;border-left:1px solid var(--border)"><div style="font-size:20px;font-weight:800;color:var(--orange)">82%</div><div style="font-size:10px;color:var(--text3)">Avg Score</div></div>
-</div>
-<div class="tw"><div class="tt"><div class="sb">🔍 <input placeholder="Search participant..."></div></div>
-<table><thead><tr><th>#</th><th>Employee</th><th>Dept</th><th>Attendance</th><th>Score /100</th><th>Notes</th><th>Result</th></tr></thead><tbody id="att-body">
-${[
-  ['NQ','Nora Al-Qahtani','HSE',true,88,'Excellent','g','Pass'],
-  ['YH','Youssef Al-Hamdan','Operations',true,75,'Good','g','Pass'],
-  ['MK','Mohammed Khalid','Maintenance',false,0,'Absent','r','Absent'],
-  ['FR','Fatima Al-Rashidi','HSE',true,94,'Outstanding','g','Pass'],
-  ['KA','Khalid Al-Anazi','Logistics',true,58,'Needs improvement','o','Borderline'],
-].map(([i,n,d,present,score,note,bc,res],idx)=>`<tr>
-  <td style="color:var(--text3)">${idx+1}</td>
-  <td><div style="display:flex;align-items:center;gap:7px"><div style="width:26px;height:26px;border-radius:50%;background:var(--accent-glow);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--accent)">${i}</div><span style="font-weight:600;color:var(--text)">${n}</span></div></td>
-  <td>${d}</td>
-  <td><div class="tog ${present?'on':''}" onclick="toggleAttendance(this,${idx})"></div></td>
-  <td><input class="grade-input" value="${present?score:''}" type="number" min="0" max="100" ${present?'':'disabled style="opacity:.3"'} id="grade-${idx}"></td>
-  <td><input class="note-input" value="${note}" type="text" ${present?'':'disabled style="opacity:.3"'}></td>
-  <td><span class="badge ${bc}" id="result-${idx}">${res}</span></td>
-</tr>`).join('')}
-</tbody></table></div>`; }
-
-function instrHistory() { return `
-<div class="ph"><div class="pt">Session History <small>All completed sessions</small></div></div>
-<div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
-  <div class="sc a"><div class="sc-label">Completed Sessions</div><div class="sc-val" style="color:var(--accent)">12</div></div>
-  <div class="sc"><div class="sc-label">Total Trained</div><div class="sc-val">187</div></div>
-  <div class="sc b"><div class="sc-label">Avg Score</div><div class="sc-val" style="color:var(--blue)">83.4</div></div>
-  <div class="sc"><div class="sc-label">Avg Rating</div><div class="sc-val">4.8⭐</div></div>
-</div>
-<div class="tw"><div class="tt"><div class="sb">🔍 <input placeholder="Search..."></div></div>
-<table><thead><tr><th>Course</th><th>Date</th><th>Attended</th><th>Avg Score</th><th>Pass Rate</th><th>Rating</th><th>Actions</th></tr></thead><tbody>
-${[
-  ['Fire Safety & Emergency Response','May 10, 2026','19/20','88.2','95%','4.9⭐'],
-  ['Risk Assessment Fundamentals','Apr 28, 2026','18/20','83.4','89%','4.7⭐'],
-  ['First Aid & CPR','Apr 10, 2026','20/20','91.0','100%','5.0⭐'],
-  ['Fire Safety & Emergency Response','Mar 22, 2026','17/20','79.5','82%','4.6⭐'],
-].map(([c,d,a,s,p,r])=>`<tr><td style="font-weight:600;color:var(--text)">${c}</td><td>${d}</td><td>${a}</td><td style="color:var(--accent);font-family:'JetBrains Mono',monospace">${s}</td><td><span class="badge g">${p}</span></td><td>${r}</td><td><div class="ra"><div class="ab" onclick="showToast('Results opened','b')">👁</div><div class="ab" onclick="showToast('Downloading...','b')">📥</div></div></td></tr>`).join('')}
-</tbody></table></div>`; }
-
-function instrProfile() {
-  const QUALS = [
-    {title:'Certified Fire Safety Inspector', issuer:'NFPA', issued:'Jan 2022', expiry:'Jan 2025', valid:false, doc:true},
-    {title:'Emergency Response Coordinator',  issuer:'Civil Defense KSA', issued:'Mar 2023', expiry:'Mar 2026', valid:true, doc:true},
-    {title:'First Aid & CPR Instructor',      issuer:'Saudi Red Crescent', issued:'Jun 2021', expiry:'Jun 2027', valid:true, doc:true},
-    {title:'Risk Assessment Professional',    issuer:'NEBOSH', issued:'Sep 2020', expiry:'Sep 2026', valid:true, doc:false},
-  ];
-  return `
-<div class="ph"><div class="pt">My Profile <small>Your instructor profile & credentials</small></div>
-  <div class="ph-actions"><button class="btn btn-outline btn-sm" onclick="showToast('Edit mode coming soon','b')">✏️ Edit</button></div>
-</div>
-
-<!-- Hero -->
-<div style="background:linear-gradient(135deg,var(--surface),rgba(0,212,170,.05));border:1px solid var(--border);border-radius:16px;padding:26px;margin-bottom:18px;display:flex;align-items:center;gap:22px;">
-  <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#00876f);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#000;box-shadow:0 0 24px rgba(0,212,170,.25)">MZ</div>
-  <div style="flex:1">
-    <div style="font-size:20px;font-weight:800">Dr. Mohammed Al-Zahrani</div>
-    <div style="font-size:12px;color:var(--text2);margin:4px 0 10px">🔥 Fire Safety Specialist &nbsp;·&nbsp; <span class="badge g">Internal</span> &nbsp;·&nbsp; HSE Department</div>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;">
-      ${[['14','Sessions','var(--accent)'],['187','Trained','var(--text)'],['4.8⭐','Rating','var(--orange)'],['4','Qualifications','var(--blue)']].map(([v,l,c])=>`<div style="text-align:center"><div style="font-size:18px;font-weight:800;color:${c};font-family:'JetBrains Mono',monospace">${v}</div><div style="font-size:9px;color:var(--text3);text-transform:uppercase">${l}</div></div>`).join('')}
-    </div>
-  </div>
-</div>
-
-<!-- 2-col -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
-  <!-- Contact -->
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
-    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">👤 My Information</div>
-    ${[['Email','mohammed.zahrani@safetyplus.sa'],['Phone','+966 50 111 2233'],['Department','HSE'],['Type','Internal Instructor'],['Joined','Jan 12, 2020'],['ID','EMP-0011']].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text3)">${l}</span><span style="font-weight:600">${v}</span></div>`).join('')}
-  </div>
-  <!-- Qualified courses -->
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
-    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">📚 I Can Teach</div>
-    ${['Fire Safety & Emergency Response','First Aid & CPR Certification','Emergency Response & Evacuation','Risk Assessment Fundamentals'].map((c,i)=>`
-    <div style="display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;margin-bottom:6px">
-      <span>${['🔥','⚕️','🚪','📋'][i]}</span>
-      <span style="font-weight:600;flex:1">${c}</span>
-      <span class="badge g">Qualified</span>
-    </div>`).join('')}
-  </div>
-</div>
-
-<!-- Qualifications -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px;">
-  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-size:13px;font-weight:700;">🏅 My Qualifications</div>
-    ${QUALS.filter(q=>!q.valid).length?`<span class="badge r">⚠ ${QUALS.filter(q=>!q.valid).length} Expired — Renewal Required</span>`:'<span class="badge g">All Valid</span>'}
-  </div>
-  ${QUALS.map(q=>`
-  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;">
-    <div style="width:36px;height:36px;border-radius:9px;background:${q.valid?'rgba(0,212,170,.12)':'rgba(255,76,106,.12)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${q.valid?'🏅':'⚠️'}</div>
-    <div style="flex:1">
-      <div style="font-size:13px;font-weight:700">${q.title}</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:2px">Issued by <strong>${q.issuer}</strong> · ${q.issued} &nbsp;→&nbsp; <span style="color:${q.valid?'var(--accent)':'var(--red)'};font-weight:600">${q.valid?'Expires':'Expired'} ${q.expiry}</span></div>
-    </div>
-    ${q.doc?`<button class="btn btn-sm btn-green" onclick="showToast('Downloading document...','b')">📥 Document</button>`:`<span style="font-size:10px;color:var(--text3)">No doc uploaded</span>`}
-    <span class="badge ${q.valid?'g':'r'}">${q.valid?'Valid':'Expired'}</span>
-  </div>`).join('')}
-</div>
-
-<!-- Performance -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
-  <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">📈 My Performance</div>
-  <div style="display:flex;flex-direction:column;gap:9px;">
-    ${[['Fire Safety — May 10',88,'var(--accent)'],['Risk Assessment — Apr 28',83,'var(--blue)'],['First Aid — Apr 10',91,'var(--accent)'],['Fire Safety — Mar 22',79,'var(--orange)']].map(([n,p,c])=>`
-    <div style="display:flex;align-items:center;gap:10px;font-size:12px">
-      <span style="color:var(--text2);flex:1">${n}</span>
-      <div style="width:160px;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${p}%;background:${c};border-radius:3px"></div></div>
-      <span style="font-family:'JetBrains Mono',monospace;color:${c};font-weight:700;width:28px">${p}</span>
-    </div>`).join('')}
-  </div>
+  <button onclick="showPage('instr-assign')" style="padding:9px 20px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">Review Now →</button>
 </div>`;
 }
 
-// ─── SESSION DETAIL PAGE ─────────────────────────────────────────────────────
-function adminSessDetail() {
-  const PARTICIPANTS = [
-    {i:'NQ',n:'Nora Al-Qahtani',   role:'Safety Officer', dept:'HSE',         type:'Self-Reg', present:true,  score:88, result:'Pass'},
-    {i:'YH',n:'Youssef Al-Hamdan', role:'Supervisor',     dept:'Operations',  type:'Admin',    present:true,  score:75, result:'Pass'},
-    {i:'MK',n:'Mohammed Khalid',   role:'Technician',     dept:'Maintenance', type:'Admin',    present:false, score:null, result:'Absent'},
-    {i:'FR',n:'Fatima Al-Rashidi', role:'HSE Manager',    dept:'HSE',         type:'Self-Reg', present:true,  score:94, result:'Pass'},
-    {i:'KA',n:'Khalid Al-Anazi',   role:'Driver',         dept:'Logistics',   type:'Admin',    present:true,  score:61, result:'Borderline'},
-    {i:'AM',n:'Ahmed Mahmoud',     role:'Operator',       dept:'Operations',  type:'Admin',    present:true,  score:72, result:'Pass'},
+// ══ ASSIGNMENTS ══════════════════════════════════════════════════
+function instrAssignments(){
+  const PA=[
+    {sid:'IS01',title:'Fire Safety & Emergency Response',days:[{date:'2026-05-24',ts:'09:00',te:'13:00'},{date:'2026-05-25',ts:'09:00',te:'13:00'}],loc:'Training Center A, Room 101',type:'Hybrid',enrolled:20,exam:{name:'Final Assessment',kind:'online',pm:70},attMin:80,bypass:true,mats:[{n:'Module 1 — Introduction',vis:'Before Session'},{n:'Session Slides',vis:'During Session'},{n:'Quiz Sheet',vis:'After — Pre-Quiz'}]},
+    {sid:'IS02',title:'Chemical Hazard Awareness (GHS)',days:[{date:'2026-05-26',ts:'08:00',te:'12:00'}],loc:'MS Teams',type:'Online',enrolled:15,exam:{name:'Paper Exam',kind:'paper',pm:70},attMin:100,bypass:false,mats:[{n:'GHS Reference Guide',vis:'Before Session'},{n:'Chemical Safety Sheet',vis:'During Session'}]},
   ];
-  const presentCount = PARTICIPANTS.filter(p=>p.present).length;
-  const passCount    = PARTICIPANTS.filter(p=>p.result==='Pass').length;
-  const avgScore     = Math.round(PARTICIPANTS.filter(p=>p.score).reduce((s,p)=>s+p.score,0)/PARTICIPANTS.filter(p=>p.score).length);
-  const scoreColor   = n => !n?'var(--text3)':n>=90?'var(--accent)':n>=70?'var(--blue)':n>=60?'var(--orange)':'var(--red)';
-  const resultCls    = r => r==='Pass'?'g':r==='Absent'?'r':'o';
-
   return `
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-  <button class="btn btn-outline btn-sm" onclick="showPage('sessions')">← Back to Sessions</button>
-  <div style="flex:1"></div>
-  <button class="btn btn-outline btn-sm" onclick="showToast('Exporting...','b')">📥 Export</button>
-  <button class="btn btn-outline btn-sm" onclick="showToast('Editing session...','b')">✏️ Edit</button>
-  <button class="btn btn-red btn-sm" onclick="showToast('Session cancelled','r')">✕ Cancel Session</button>
+<div class="ph"><div><div class="pt">My Assignments</div><div class="ps">Review and respond to session assignments</div></div></div>
+<div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+  <span>📌</span><strong>${PA.length} new assignments</strong> waiting for your response.
 </div>
+${PA.map((a,ai)=>`
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+  <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2);">
+    <span style="background:rgba(217,119,6,.12);color:var(--orange);border:1px solid rgba(217,119,6,.25);border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;">📌 Awaiting</span>
+    <span style="font-size:15px;font-weight:800;flex:1;">${a.title}</span>
+    <button onclick="openDecl(${ai})" style="padding:8px 16px;border:1px solid rgba(220,38,38,.3);background:rgba(220,38,38,.06);color:var(--red);border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">✕ Decline</button>
+    <button onclick="accAssign(${ai},this)" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">✓ Accept</button>
+  </div>
 
-<!-- Session hero -->
-<div style="background:linear-gradient(135deg,var(--surface),rgba(77,159,255,.05));border:1px solid rgba(77,159,255,.25);border-radius:16px;padding:24px 28px;margin-bottom:18px;">
-  <div style="display:flex;align-items:flex-start;gap:18px;">
-    <div style="width:52px;height:52px;border-radius:12px;background:rgba(255,76,106,.15);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🔥</div>
-    <div style="flex:1">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-        <span style="font-size:20px;font-weight:800">Fire Safety &amp; Emergency Response</span>
-        <span class="badge g">Hybrid</span>
-        <span class="badge b">Self-Register</span>
-        <span style="background:rgba(0,212,170,.12);color:var(--accent);font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px">✓ Completed</span>
+  <!-- Session days -->
+  <div style="padding:14px 20px;border-bottom:1px solid var(--border);">
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Session Schedule — ${a.days.length} day${a.days.length>1?'s':''}</div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      ${a.days.map((d,di)=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">D${di+1}</div>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:700;">${fd(d.date)}</div><div style="font-size:11px;color:var(--text2);">⏰ ${d.ts}–${d.te}</div></div>
+        <span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:7px;background:rgba(29,78,216,.08);color:var(--blue);">${a.type}</span>
+        <span style="font-size:11px;color:var(--text2);">📍 ${a.loc}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Details grid -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border);">
+    ${[['Enrolled',`${a.enrolled} participants`],['Assigned By','Zaid Hadi (Admin)'],['Exam',a.exam.name]].map(([l,v])=>`
+    <div style="padding:12px 20px;border-right:1px solid var(--border);"><div style="font-size:10px;color:var(--text3);margin-bottom:3px;">${l}</div><div style="font-size:13px;font-weight:600;">${v}</div></div>`).join('')}
+  </div>
+
+  <!-- Collapsible sections -->
+  <div style="padding:12px 20px;display:flex;flex-direction:column;gap:8px;">
+    <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;">
+      <div onclick="tSec('aex${ai}')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;background:var(--surface2);" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+        <span>📝</span>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:700;">Exam: ${a.exam.name}</div>
+          <div style="display:flex;gap:8px;margin-top:3px;">
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:${a.exam.kind==='online'?'rgba(29,78,216,.1)':'rgba(217,119,6,.1)'};color:${a.exam.kind==='online'?'var(--blue)':'var(--orange)'};">${a.exam.kind==='online'?'💻 Online':'📄 Paper'}</span>
+            <span style="font-size:11px;color:var(--text2);">Pass: ${a.exam.pm}% · Min Att: ${a.attMin}%</span>
+            <span style="font-size:11px;font-weight:700;color:${a.bypass?'var(--green)':'var(--red)'};">${a.bypass?'✓ Bypass OK':'✗ No Bypass'}</span>
+          </div>
+        </div>
+        <span style="color:var(--text3);font-size:13px;transition:transform .2s;" id="aaex${ai}">▾</span>
       </div>
-      <div style="display:flex;gap:16px;font-size:12px;color:var(--text2);flex-wrap:wrap;">
-        <span>📅 May 24, 2026</span>
-        <span>⏰ 09:00 – 17:00 &nbsp;(8h)</span>
-        <span>📍 Training Center A, Room 101</span>
-        <span>👨‍🏫 <strong style="color:var(--text)">Dr. Mohammed Al-Zahrani</strong></span>
-        <span>📋 TRN-10430</span>
+      <div id="aex${ai}" style="display:none;padding:14px 16px;border-top:1px solid var(--border);">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+          ${[['Type',a.exam.kind==='online'?'💻 Online':'📄 Paper','var(--text)'],['Pass Mark',a.exam.pm+'%','var(--green)'],['Min Attendance',a.attMin+'%','var(--accent)'],['Bypass Allowed',a.bypass?'Yes':'No',a.bypass?'var(--green)':'var(--red)']].map(([l,v,c])=>`
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center;"><div style="font-size:10px;color:var(--text3);margin-bottom:5px;">${l}</div><div style="font-size:15px;font-weight:700;color:${c};">${v}</div></div>`).join('')}
+        </div>
       </div>
     </div>
-    <!-- 4 KPIs -->
-    <div style="display:flex;gap:12px;flex-shrink:0;">
-      ${[[presentCount+'/'+PARTICIPANTS.length,'Present','var(--accent)'],[passCount,'Passed','var(--blue)'],[avgScore,'Avg Score','var(--orange)'],['3','Certs Issued','var(--accent)']].map(([v,l,c])=>`
-      <div style="text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
-        <div style="font-size:20px;font-weight:800;color:${c};font-family:'JetBrains Mono',monospace">${v}</div>
-        <div style="font-size:9px;color:var(--text3);text-transform:uppercase">${l}</div>
+    <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;">
+      <div onclick="tSec('amt${ai}')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;background:var(--surface2);" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+        <span>📁</span><div style="flex:1;"><div style="font-size:12px;font-weight:700;">Course Materials · ${a.mats.length} files</div></div>
+        <span style="color:var(--text3);font-size:13px;transition:transform .2s;" id="aamt${ai}">▾</span>
+      </div>
+      <div id="amt${ai}" style="display:none;padding:12px 14px;border-top:1px solid var(--border);">
+        ${a.mats.map(m=>`<div style="display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:6px;"><span>📄</span><div style="flex:1;font-size:12px;font-weight:600;">${m.n}</div><span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:7px;background:var(--accent-h);color:var(--accent);">${m.vis}</span><button onclick="toast('Downloading...','b')" style="padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:11px;">📥</button></div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Decline form -->
+  <div id="declf${ai}" style="display:none;padding:16px 20px;border-top:1px solid var(--border);background:rgba(220,38,38,.03);">
+    <div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:5px;">Reason *</label>
+      <select id="declr${ai}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:12px;outline:none;">
+        <option value="">— Select reason —</option>
+        <option>Schedule conflict</option><option>Not qualified</option><option>On leave</option><option>Workload concern</option><option>Other</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:5px;">Details (optional)</label>
+      <textarea id="decld${ai}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:12px;outline:none;min-height:60px;resize:vertical;" placeholder="Additional info for admin..."></textarea>
+    </div>
+    <div style="display:flex;gap:7px;">
+      <button onclick="document.getElementById('declf${ai}').style.display='none'" style="padding:7px 14px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;">Cancel</button>
+      <button onclick="sendDecl(${ai})" style="padding:7px 16px;background:var(--red);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Send Decline</button>
+    </div>
+  </div>
+</div>`).join('')}
+
+<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 10px;">Responded</div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;">
+    <thead><tr style="background:var(--surface2);">${['Course','Schedule','Status',''].map(h=>`<th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
+    <tbody>
+      <tr><td style="padding:11px 14px;font-size:12px;font-weight:700;">Risk Assessment Fundamentals</td><td style="padding:11px 14px;font-size:12px;color:var(--text2);">10 May 2026 · 09:00–17:00</td><td style="padding:11px 14px;"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(22,163,74,.1);color:var(--green);">✓ Accepted</span></td><td style="padding:11px 14px;text-align:right;"><button onclick="CSID='IS03';showPage('instr-session-detail')" style="padding:5px 12px;border:1px solid var(--border);background:var(--surface2);border-radius:6px;cursor:pointer;font-size:11px;">Open →</button></td></tr>
+    </tbody>
+  </table>
+</div>`;
+}
+
+function tSec(id){const el=document.getElementById(id);const arr=document.getElementById('a'+id);if(!el)return;const open=el.style.display!=='none';el.style.display=open?'none':'block';if(arr)arr.style.transform=open?'':'rotate(180deg)';}
+function openDecl(i){document.getElementById('declf'+i).style.display='block';}
+function accAssign(i,btn){btn.textContent='✓ Accepted';btn.style.background='var(--green)';btn.disabled=true;btn.previousElementSibling.style.display='none';toast('Assignment accepted!','g');}
+function sendDecl(i){if(!document.getElementById('declr'+i)?.value){toast('Select a reason','r');return;}const card=document.getElementById('declf'+i).closest('div[style*="background:var(--surface)"]');if(card){card.style.opacity='0.5';card.style.pointerEvents='none';}toast('Decline sent.','r');}
+
+// ══ SESSIONS LIST ═════════════════════════════════════════════════
+function instrSessions(){
+  const STATUS_CFG = {
+    upcoming:   {label:'Upcoming',    color:'var(--blue)',   bg:'rgba(29,78,216,.08)',  icon:'📅'},
+    inprogress: {label:'In Progress', color:'var(--green)',  bg:'rgba(22,163,74,.10)',  icon:'🟢'},
+    ended:      {label:'Session Ended',color:'var(--orange)',bg:'rgba(217,119,6,.09)',  icon:'⏹'},
+    review:     {label:'Need Review', color:'var(--red)',    bg:'rgba(220,38,38,.09)',  icon:'⚠️'},
+    confirmed:  {label:'Confirmed',   color:'var(--green)',  bg:'rgba(22,163,74,.08)',  icon:'✅'},
+  };
+  const active  = ISESS.filter(s=>['upcoming','inprogress','ended','review'].includes(s.status));
+  const done    = ISESS.filter(s=>s.status==='confirmed');
+
+  const statusBadge = s => {
+    const c=STATUS_CFG[s.status]||STATUS_CFG.upcoming;
+    return `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;background:${c.bg};color:${c.color};">${c.icon} ${c.label}</span>`;
+  };
+
+  const deadlineTag = s => {
+    if(!s.examDeadline) return '';
+    const diff = new Date(s.examDeadline)-new Date();
+    if(diff<=0) return `<span style="font-size:10px;font-weight:700;color:var(--red);">⏱ Deadline passed</span>`;
+    const h=Math.floor(diff/3600000), m=Math.floor((diff%3600000)/60000);
+    const txt = h>=24?Math.floor(h/24)+'d '+(h%24)+'h':h+'h '+m+'m';
+    return `<span style="font-size:10px;font-weight:700;color:var(--orange);">⏱ ${txt} left</span>`;
+  };
+
+  return `
+<div class="ph"><div><div class="pt">My Sessions</div><div class="ps">All assigned training sessions</div></div></div>
+
+<!-- Status summary -->
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px;">
+  ${Object.entries(STATUS_CFG).map(([key,c])=>{
+    const cnt=ISESS.filter(s=>s.status===key).length;
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 14px;border-top:3px solid ${c.color};cursor:pointer;" onclick="">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">${c.icon} ${c.label}</div>
+      <div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${c.color};">${cnt}</div>
+    </div>`;
+  }).join('')}
+</div>
+
+<!-- Active sessions -->
+<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Active Sessions</div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+${active.map(s=>{
+  const cfg=STATUS_CFG[s.status];
+  const first=s.days[0];
+  const isMulti=s.days.length>1;
+  const dl=Math.ceil((new Date(first.date)-new Date())/86400000);
+  return `<div onclick="CSID='${s.id}';showPage('instr-session-detail')" style="background:var(--surface);border:1.5px solid ${s.status==='review'?'rgba(220,38,38,.3)':s.status==='inprogress'?'rgba(22,163,74,.3)':'var(--border)'};border-radius:12px;cursor:pointer;overflow:hidden;transition:all .14s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+    <div style="padding:14px 18px;display:flex;align-items:center;gap:14px;">
+      <div style="width:44px;text-align:center;flex-shrink:0;">
+        <div style="font-size:20px;font-weight:800;color:${cfg.color};line-height:1;">${new Date(first.date).getDate()}</div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;">${new Date(first.date).toLocaleString('en',{month:'short'})}</div>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:5px;">${s.title}</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
+          ${statusBadge(s)}
+          <span style="font-size:10px;color:var(--text2);">${first.ts}–${first.te}</span>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(29,78,216,.08);color:var(--blue);">${s.type}</span>
+          ${isMulti?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:var(--accent-h);color:var(--accent);">📅 ${s.days.length} days</span>`:''}
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:${s.exam.kind==='paper'?'rgba(217,119,6,.1)':'rgba(29,78,216,.08)'};color:${s.exam.kind==='paper'?'var(--orange)':'var(--blue)'};">${s.exam.kind==='paper'?'📄 Paper':'💻 Online'}</span>
+          ${deadlineTag(s)}
+        </div>
+      </div>
+      <div style="font-size:18px;color:var(--text3);">›</div>
+    </div>
+    ${isMulti?`<div style="padding:7px 18px;border-top:1px solid var(--border);background:var(--surface2);display:flex;gap:6px;flex-wrap:wrap;">
+      ${s.days.map((d,di)=>{
+        const dayDone=Object.keys(d).length>0&&s.status!=='upcoming';
+        const attCnt=s.parts.filter(p=>p.dayAtt&&p.dayAtt[di]).length;
+        return `<span style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:16px;background:var(--surface3);color:var(--text2);">Day ${di+1}: ${fd(d.date)}${s.status!=='upcoming'?' · '+attCnt+'/'+s.parts.length:''}  </span>`;
+      }).join('')}
+    </div>`:''}
+  </div>`;
+}).join('')||'<div style="font-size:12px;color:var(--text3);padding:8px 0;">No active sessions.</div>'}
+</div>
+
+<!-- Confirmed / History -->
+<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Confirmed & Completed</div>
+${done.length===0?`<div style="font-size:12px;color:var(--text3);padding:8px 0;">No confirmed sessions yet.</div>`:`
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;">
+    <thead><tr style="background:var(--surface2);">${['Course','Date','Type','Attended','Pass Rate',''].map(h=>`<th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
+    <tbody>${done.map(s=>{
+      const eligible=s.parts.filter(p=>isEligible(p,s));
+      const isPaper=s.exam.kind==='paper';
+      const totM=(isPaper?(s.exam.totalMarks||20):(s.exam.qs||[]).reduce((a,q)=>a+q.marks,0))||1;
+      const scored=eligible.map(p=>isPaper?(p.paperScore||0):((p.answers||[]).reduce((a,x)=>a+(x.autoScore||0)+(x.manualScore||0),0)));
+      const pass=scored.filter(sc=>Math.round(sc/totM*100)>=s.exam.pm).length;
+      const pres=s.parts.filter(p=>Object.values(p.dayAtt||{}).some(Boolean)).length;
+      return `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:10px 14px;font-size:12px;font-weight:700;">${s.title}</td>
+        <td style="padding:10px 14px;font-size:12px;color:var(--text2);">${fd(s.days[0].date)}</td>
+        <td style="padding:10px 14px;"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:${isPaper?'rgba(217,119,6,.1)':'rgba(29,78,216,.08)'};color:${isPaper?'var(--orange)':'var(--blue)'};">${isPaper?'📄 Paper':'💻 Online'}</span></td>
+        <td style="padding:10px 14px;font-size:12px;">${pres}/${s.enrolled}</td>
+        <td style="padding:10px 14px;"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(22,163,74,.1);color:var(--green);">${eligible.length?Math.round(pass/eligible.length*100):0}%</span></td>
+        <td style="padding:10px 14px;text-align:right;"><button onclick="CSID='${s.id}';showPage('instr-session-detail')" style="padding:5px 12px;border:1px solid var(--border);background:var(--surface2);border-radius:6px;cursor:pointer;font-size:11px;">View →</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>
+</div>`}`;
+}
+
+// ══ SESSION DETAIL ════════════════════════════════════════════════
+function instrSessionDetail(){
+  const s=IG(CSID);
+  const isComp   = isDone(s);
+  const isLive   = isInProgress(s);
+  const isEndedS = isEnded(s);
+  const isRevS   = isReview(s);
+  const first=s.days[0],last=s.days[s.days.length-1];
+  const dl=Math.ceil((new Date(first.date)-new Date())/86400000);
+  const isMulti=s.days.length>1;
+
+  const ATT=s.parts.map(p=>({...p,present:p.present||false,score:p.score||null,bypassed:p.bypassed||false,answers:p.answers||[]}));
+  const eligible=ATT.filter(p=>isEligible(p,s));
+
+  // Deadline countdown
+  const deadlineStr = s.examDeadline ? (()=>{
+    const diff = new Date(s.examDeadline) - new Date();
+    if(diff <= 0) return 'Deadline passed';
+    const h = Math.floor(diff/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    if(h >= 24) return Math.floor(h/24)+'d '+( h%24)+'h remaining';
+    return h+'h '+m+'m remaining';
+  })() : null;
+  const totMarks = s.exam.kind==='paper' ? (s.exam.totalMarks||20) : (s.exam.qs||[]).reduce((a,q)=>a+q.marks,0);
+
+  return `
+<style>
+.sess-tab2{padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--text2);transition:all .15s;user-select:none;}
+.sess-tab2.on{border-bottom-color:var(--accent);color:var(--accent);}
+.sess-tab2:hover:not(.on){color:var(--text);border-bottom-color:var(--border);}
+.score-input{width:54px;text-align:center;border:1.5px solid var(--border);border-radius:7px;padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;outline:none;background:var(--surface);}
+.score-input:focus{border-color:var(--accent);}
+.day-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;}
+</style>
+
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+  <button onclick="showPage('instr-sessions')" style="padding:6px 14px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;">← Sessions</button>
+  <div style="flex:1;"></div>
+  ${isUpcoming(s)?`<button onclick="setStatus('${s.id}','inprogress');showPage('instr-session-detail');toast('Session started!','g')" style="padding:9px 20px;background:var(--green);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">▶ Start Session</button>`:''}
+  ${isLive?`<button onclick="openModal('mo-end-session')" style="padding:9px 20px;background:var(--red);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">⏹ End Session</button>`:''}
+  ${isReview(s)?`<button onclick="showPage('instr-exam-overview')" style="padding:9px 18px;background:var(--orange);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">⚠️ Review & Grade</button>`:''}
+  ${isConfirmedS(s)?`<button onclick="toast('Exporting...','b')" style="padding:8px 14px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;">📥 Export</button>`:''}
+  ${isDone(s)?`<button onclick="openModal('mo-session-report')" style="padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">📊 Report</button>`:''}
+</div>
+
+<!-- Status banner -->
+${isConfirmedS(s)||isReview(s)||isEnded(s)?`<div style="background:${isReview(s)?'rgba(220,38,38,.07)':isEnded(s)?'rgba(217,119,6,.07)':'rgba(22,163,74,.08)'};border:1px solid ${isReview(s)?'rgba(220,38,38,.22)':isEnded(s)?'rgba(217,119,6,.22)':'rgba(22,163,74,.22)'};border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+  <span style="font-size:18px;">${isReview(s)?'⚠️':isEnded(s)?'⏹':'✅'}</span>
+  <div style="flex:1;">
+    <div style="font-size:13px;font-weight:700;color:${isReview(s)?'var(--red)':isEnded(s)?'var(--orange)':'var(--green)'};">${isReview(s)?'Need Review — Grade and confirm all trainees to finalize.':isEnded(s)?'Session Ended — '+(s.exam.kind==='online'?'Waiting for trainees to submit exam.':'Enter paper scores for each trainee.'):'Session Confirmed — All trainees reviewed and finalized.'}</div>
+    ${deadlineStr?`<div style="font-size:11px;color:var(--text2);margin-top:2px;">⏱ Exam deadline: <strong style="color:${deadlineStr.includes('passed')?'var(--red)':'var(--orange)'};">${deadlineStr}</strong></div>`:''}
+  </div>
+  ${isReview(s)?`<button onclick="showPage('instr-exam-overview')" style="padding:8px 16px;background:var(--orange);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Review Now →</button>`:''}
+  ${isEnded(s)&&s.exam.kind==='online'?`<button onclick="iTab('results')" style="padding:8px 14px;background:var(--orange);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Track Submissions</button>`:''}
+  ${isEnded(s)&&s.exam.kind==='paper'?`<button onclick="showPage('instr-exam-overview')" style="padding:8px 14px;background:var(--orange);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Enter Scores →</button>`:''}
+</div>`:`
+<div style="background:${isLive?'rgba(22,163,74,.08)':'var(--accent-h)'};border:1px solid ${isLive?'rgba(22,163,74,.22)':'rgba(107,45,94,.15)'};border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+  <span style="font-size:18px;">${isLive?'🟢':'📅'}</span>
+  <div style="flex:1;font-size:13px;">${isLive?`<strong style="color:var(--green)">Session In Progress</strong> — Mark attendance and manage trainees.`:`<strong>${dl} days</strong> until session starts — ${fd(first.date)}.`}</div>
+  ${isUpcoming(s)?`<button onclick="setStatus('${s.id}','inprogress');showPage('instr-session-detail');toast('Session started!','g')" style="padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">▶ Start Now</button>`:''}
+  ${isLive?`<button onclick="openModal('mo-end-session')" style="padding:7px 14px;background:var(--red);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">⏹ End Session</button>`:''}
+</div>`}
+
+
+<!-- Hero -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:16px;">
+  <div style="display:flex;align-items:flex-start;gap:14px;">
+    <div style="width:46px;height:46px;border-radius:11px;background:rgba(220,38,38,.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🔥</div>
+    <div style="flex:1;">
+      <div style="font-size:17px;font-weight:800;margin-bottom:6px;">${s.title}</div>
+      <div style="display:flex;gap:10px;font-size:11px;color:var(--text2);flex-wrap:wrap;margin-bottom:${isMulti?'12px':'0'};">
+        <span>📍 ${s.loc}</span><span class="badge bb">${s.type}</span><span>👥 ${s.enrolled}/${s.max}</span>
+      </div>
+      ${isMulti?`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${s.days.map((d,di)=>`<div class="day-card" style="flex-shrink:0;"><div style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;margin-bottom:3px;">Day ${di+1}</div><div style="font-size:12px;font-weight:700;">${fd(d.date)}</div><div style="font-size:10px;color:var(--text2);">⏰ ${d.ts}–${d.te}</div></div>`).join('')}
+      </div>`:`<div style="font-size:11px;color:var(--text2);">📅 ${fd(first.date)} · ⏰ ${first.ts}–${first.te}</div>`}
+    </div>
+    <div style="display:flex;gap:16px;flex-shrink:0;border-left:1px solid var(--border);padding-left:16px;">
+      ${[['Pass Mark',s.exam.pm+'%','var(--green)'],['Min Att.',s.attMin+'%','var(--accent)'],['Bypass',s.bypass?'✓':'✗',s.bypass?'var(--green)':'var(--red)'],['Exam',s.exam.kind==='online'?'Online':'Paper','var(--blue)']].map(([l,v,c])=>`
+      <div style="text-align:center;">
+        <div style="font-size:17px;font-weight:800;color:${c};">${v}</div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;margin-top:2px;">${l}</div>
       </div>`).join('')}
     </div>
   </div>
 </div>
 
-<!-- 3-col info -->
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;">
-  <!-- Session details -->
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
-    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">📋 Session Details</div>
-    ${[['Course ID','TRN-10430'],['Date','May 24, 2026'],['Start Time','09:00'],['End Time','17:00'],['Duration','8 hours'],['Location','Training Center A, Room 101'],['Session Type','Hybrid'],['Enrollment','Self-Register'],['Max Capacity','20'],['Created By','Zaid Hadi (Admin)']].map(([l,v])=>`
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;">
-      <span style="color:var(--text3)">${l}</span><span style="font-weight:600">${v}</span>
+<!-- Tabs -->
+<div style="display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:20px;">
+  <div id="itab-attendance" onclick="iTab('attendance')" style="flex:1;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;border-radius:7px;text-align:center;background:var(--accent);color:#fff;transition:all .15s;">👥 Attendance & Grades</div>
+  <div id="itab-exam"       onclick="iTab('exam')"       style="flex:1;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;border-radius:7px;text-align:center;background:transparent;color:var(--text2);transition:all .15s;">📝 Exam</div>
+  <div id="itab-materials"  onclick="iTab('materials')"  style="flex:1;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;border-radius:7px;text-align:center;background:transparent;color:var(--text2);transition:all .15s;">📁 Materials</div>
+  ${isComp?`<div id="itab-results" onclick="iTab('results')" style="flex:1;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;border-radius:7px;text-align:center;background:transparent;color:var(--text2);transition:all .15s;border:1.5px solid var(--accent);">📊 Results & Grading</div>`:''}
+</div>
+
+<!-- ═══ TAB: ATTENDANCE ═══ -->
+<div id="itc-attendance">
+
+  <!-- Bypass/rules banner -->
+  ${(()=>{
+    const msg = isMulti
+      ? `${s.days.length}-day session — minimum <strong>${s.attMin}%</strong> of days required.${s.bypass?' You can bypass individually.':' No bypass.'}`
+      : `Single-day session — trainee must be <strong>present</strong>.${s.bypass?' You can bypass individually.':' No bypass.'}`;
+    return `<div style="background:${s.bypass?'rgba(22,163,74,.06)':'rgba(220,38,38,.05)'};border:1px solid ${s.bypass?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'};border-radius:9px;padding:11px 16px;display:flex;align-items:center;gap:9px;margin-bottom:14px;"><span style="font-size:16px;">${s.bypass?'✅':'🚫'}</span><div style="font-size:12px;color:${s.bypass?'var(--green)':'var(--red)'};">${msg}</div></div>`;
+  })()}
+
+  ${!(isActive(s))?`<div style="font-size:12px;color:var(--text3);padding:12px 16px;background:var(--surface2);border-radius:8px;margin-bottom:14px;">▶ Start the session to begin marking attendance.</div>`:''}
+
+  ${(isActive(s))?`
+  <!-- Day tabs -->
+  <div style="display:flex;align-items:center;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+    ${s.days.map((d,di)=>`
+    <div id="attdaytab-${di}" onclick="switchAttDay(${di})"
+      style="padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid ${di===0?'var(--accent)':'transparent'};color:${di===0?'var(--accent)':'var(--text2)'};margin-bottom:-2px;transition:all .15s;user-select:none;white-space:nowrap;">
+      Day ${di+1}
+      <span style="font-size:11px;font-weight:400;opacity:.7;margin-left:4px;">${fd(d.date)}</span>
+      <span style="margin-left:6px;background:var(--surface3);color:var(--text2);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;" id="daytab-badge-${di}">${ATT.filter(p=>p.dayAtt&&p.dayAtt[di]).length}/${ATT.length}</span>
     </div>`).join('')}
+    <div style="flex:1;"></div>
+    ${isLive?`<div style="padding-bottom:10px;"><button onclick="markAllPDay()" style="padding:6px 14px;border:1px solid var(--border);background:var(--surface);border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;">✅ Mark All Present</button></div>`:''}
   </div>
-  <!-- Instructor -->
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
-    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">👨‍🏫 Instructor</div>
-    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:9px;margin-bottom:12px;cursor:pointer" onclick="showPage('admin-instr-detail')" onmouseover="this.style.borderColor='var(--accent)';this.style.border='1px solid var(--accent)'" onmouseout="this.style.border='1px solid transparent'">
-      <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#00876f);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#000">MZ</div>
-      <div style="flex:1"><div style="font-weight:700;font-size:13px">Dr. Mohammed Al-Zahrani</div><div style="font-size:10px;color:var(--text3)">🔥 Fire Safety Specialist</div></div>
-      <span style="font-size:11px;color:var(--accent)">→</span>
+
+  <!-- Per-day panels -->
+  ${s.days.map((d,di)=>`
+  <div id="attday-${di}" style="display:${di===0?'block':'none'};">
+
+    <!-- Day header -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">${di+1}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;">Day ${di+1} — ${fd(d.date)}</div>
+        <div style="font-size:11px;color:var(--text2);">⏰ ${d.ts}–${d.te} &nbsp;·&nbsp; 📍 ${s.loc}</div>
+      </div>
+      <div style="text-align:center;padding:0 16px;border-left:1px solid var(--border);">
+        <div style="font-size:20px;font-weight:800;color:var(--accent);" id="daypres-${di}">${ATT.filter(p=>p.dayAtt&&p.dayAtt[di]).length}</div>
+        <div style="font-size:10px;color:var(--text3);">Present</div>
+      </div>
+      <div style="text-align:center;padding:0 16px;border-left:1px solid var(--border);">
+        <div style="font-size:20px;font-weight:800;">${ATT.length}</div>
+        <div style="font-size:10px;color:var(--text3);">Enrolled</div>
+      </div>
+      ${isLive?`<button onclick="saveDayAtt(${di})" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">💾 Save Day ${di+1}</button>`:''}
     </div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Session Rating from participants:</div>
-    <div style="font-size:28px;font-weight:800;color:var(--orange)">4.8 ⭐</div>
-    <div style="font-size:10px;color:var(--text3)">Based on ${PARTICIPANTS.filter(p=>p.present).length} responses</div>
+
+    <!-- Attendance table — ONLY present toggle + attendance % + notes -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:var(--surface2);">
+          <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">Trainee</th>
+          <th style="padding:9px 14px;text-align:center;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">Present</th>
+          ${isMulti?`<th style="padding:9px 14px;text-align:center;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">Att %</th>`:''}
+          <th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">Note</th>
+        </tr></thead>
+        <tbody>
+        ${ATT.map((p,pi)=>{
+          const pct=attPct(p,s.days.length);
+          const attColor=pct===null?'var(--text2)':pct>=s.attMin?'var(--green)':'var(--red)';
+          const isPresent=!!p.dayAtt[di];
+          return `<tr style="border-bottom:1px solid var(--border);background:${isPresent?'rgba(22,163,74,.025)':'transparent'};" id="att-row-${di}-${pi}">
+            <td style="padding:10px 14px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:30px;height:30px;border-radius:50%;background:${p.col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${p.ini}</div>
+                <div>
+                  <div style="font-size:12px;font-weight:700;">${p.n}</div>
+                  ${isMulti?`<div id="patt-label-${pi}" style="font-size:10px;color:${attColor};font-weight:700;">${pct!==null?pct+'% attendance':'—'}</div>`:''}
+                </div>
+              </div>
+            </td>
+            <td style="padding:10px 14px;text-align:center;">
+              <button class="tog ${isPresent?'on':''}" id="ptg-${di}-${pi}"
+                onclick="${isLive?`tAttDay(${pi},${di})`:'void(0)'}"
+                ${!isLive?'style="pointer-events:none;opacity:.6"':''}></button>
+            </td>
+            ${isMulti?`<td style="padding:10px 14px;text-align:center;">
+              <span id="patt-${pi}" style="font-size:14px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${attColor};">${pct!==null?pct+'%':'—'}</span>
+            </td>`:''}
+            <td style="padding:8px 12px;">
+              <input id="note-${di}-${pi}" type="text" placeholder="e.g. Late arrival…"
+                value="${p.dayNotes&&p.dayNotes[di]||''}"
+                oninput="saveNote(${pi},${di},this.value)"
+                style="width:140px;padding:6px 9px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:11px;outline:none;background:var(--surface2);color:var(--text);"
+                onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+                ${!isLive&&!isDone(s)?'disabled style="opacity:.4"':''}
+              >
+            </td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Day general note + save -->
+    ${isLive?`
+    <div style="margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">📝 Day ${di+1} General Note</div>
+      <textarea id="daynote-${di}" oninput="saveDayNote(${di},this.value)"
+        placeholder="General notes for this day (e.g. late start, technical issue)…"
+        style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:12px;outline:none;background:var(--surface);min-height:56px;resize:vertical;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+      >${s.dayNotes&&s.dayNotes[di]||''}</textarea>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+      <div style="font-size:12px;color:var(--green);" id="day-save-status-${di}"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="openModal('mo-end-session')" style="padding:9px 18px;background:var(--red);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">⏹ End Session</button>
+        <button onclick="saveDayAtt(${di})" style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">💾 Save Day ${di+1}</button>
+      </div>
+    </div>`:''}
+
+  </div>`).join('')}
+  `:''}
+
+</div>
+
+<!-- ═══ TAB: EXAM ═══ -->
+<div id="itc-exam" style="display:none;">
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Selected Exam</div><div style="font-size:16px;font-weight:800;">${s.exam.name}</div></div>
+      <span style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:8px;background:${s.exam.kind==='online'?'rgba(29,78,216,.1)':'rgba(217,119,6,.1)'};color:${s.exam.kind==='online'?'var(--blue)':'var(--orange)'};">${s.exam.kind==='online'?'💻 Online':'📄 Paper'}</span>
+      <div style="margin-left:auto;display:flex;gap:18px;">
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text3);">Pass Mark</div><div style="font-size:22px;font-weight:800;color:var(--green);">${s.exam.pm}%</div></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text3);">Total Marks</div><div style="font-size:22px;font-weight:800;color:var(--accent);">${totMarks}</div></div>
+        ${s.exam.kind==='online'?`<div style="text-align:center;"><div style="font-size:10px;color:var(--text3);">Questions</div><div style="font-size:22px;font-weight:800;color:var(--blue);">${(s.exam.qs||[]).length}</div></div>`:''}
+      </div>
+    </div>
   </div>
-  <!-- Stats -->
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
-    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">📊 Results Summary</div>
-    ${[
-      ['Enrolled',PARTICIPANTS.length,'var(--text)'],
-      ['Present',presentCount,'var(--accent)'],
-      ['Absent',PARTICIPANTS.length-presentCount,'var(--red)'],
-      ['Pass',passCount,'var(--accent)'],
-      ['Borderline',PARTICIPANTS.filter(p=>p.result==='Borderline').length,'var(--orange)'],
-      ['Avg Score',avgScore+'/100','var(--blue)'],
-      ['Certs Issued','3','var(--accent)'],
-      ['Pass Rate',Math.round(passCount/presentCount*100)+'%','var(--accent)'],
-    ].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text3)">${l}</span><span style="font-weight:700;color:${c}">${v}</span></div>`).join('')}
+
+  ${s.exam.kind==='paper'?`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .14s;" onclick="toast('Downloading exam file...','b')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="width:40px;height:40px;border-radius:9px;background:rgba(220,38,38,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📄</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:700;">Exam File</div><div style="font-size:11px;color:var(--text3);">Chemical_Hazard_Exam.pdf</div></div>
+      <span style="font-size:20px;">📥</span>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .14s;" onclick="toast('Downloading answer key...','b')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="width:40px;height:40px;border-radius:9px;background:rgba(22,163,74,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🔑</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:700;">Answer Key</div><div style="font-size:11px;color:var(--text3);">Chemical_Hazard_AnswerKey.pdf</div></div>
+      <span style="font-size:20px;">📥</span>
+    </div>
+  </div>
+  <div style="background:rgba(217,119,6,.06);border:1px solid rgba(217,119,6,.2);border-radius:9px;padding:12px 16px;font-size:12px;color:var(--orange);">📝 After collecting answer sheets, go to the <strong>Attendance</strong> tab and click <strong>Grade</strong> next to each trainee to enter their score.</div>
+  `:`
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    ${(s.exam.qs||[]).map((q,qi)=>q?`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);">
+        <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">Q${qi+1}</div>
+        <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:7px;background:${q.type==='mcq'?'rgba(29,78,216,.1)':q.type==='tf'?'rgba(22,163,74,.1)':'rgba(217,119,6,.1)'};color:${q.type==='mcq'?'var(--blue)':q.type==='tf'?'var(--green)':'var(--orange)'};">${q.type==='mcq'?'Multiple Choice':q.type==='tf'?'True / False':'Short Answer'}</span>
+        ${q.type==='short'?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(217,119,6,.12);color:var(--orange);">⚠ Manual Grading Required</span>`:''}
+        <div style="margin-left:auto;font-size:12px;color:var(--text2);">Marks: <strong>${q.marks}</strong></div>
+      </div>
+      <div style="padding:13px 16px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">${q.q}</div>
+        ${q.type==='mcq'?q.opts.map((o,oi)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid ${oi===q.correct?'var(--green)':'var(--border)'};border-radius:7px;background:${oi===q.correct?'rgba(22,163,74,.06)':'transparent'};margin-bottom:5px;font-size:12px;">
+          <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${oi===q.correct?'var(--green)':'var(--border)'};background:${oi===q.correct?'var(--green)':'transparent'};flex-shrink:0;display:flex;align-items:center;justify-content:center;">${oi===q.correct?'<div style="width:7px;height:7px;border-radius:50%;background:#fff;"></div>':''}</div>
+          <span style="flex:1;">${o}</span>
+          ${oi===q.correct?`<span style="font-size:10px;font-weight:700;color:var(--green);">✓ Correct</span>`:''}
+        </div>`).join(''):
+        q.type==='tf'?`<div style="display:flex;gap:9px;">${q.opts.map((o,oi)=>`<div style="flex:1;padding:9px;border:2px solid ${oi===q.correct?'var(--green)':'var(--border)'};border-radius:8px;text-align:center;font-size:13px;font-weight:700;color:${oi===q.correct?'var(--green)':'var(--text2)'};background:${oi===q.correct?'rgba(22,163,74,.06)':'transparent'};">${o} ${oi===q.correct?'✓':''}</div>`).join('')}</div>`:
+        `<div style="background:rgba(217,119,6,.06);border:1px solid rgba(217,119,6,.2);border-radius:8px;padding:10px 14px;"><div style="font-size:10px;font-weight:700;color:var(--orange);margin-bottom:4px;">📝 Model Answer (grading reference):</div><div style="font-size:12px;color:var(--text2);">${q.modelAns}</div></div>`}
+      </div>
+    </div>`:null).filter(Boolean).join('')}
+  </div>`}
+
+  ${isComp?`<div style="background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.2);border-radius:9px;padding:12px 16px;margin-top:12px;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--green);">
+    <span>✅</span>
+    <div style="flex:1;">Exam sent to eligible trainees.${deadlineStr?` <span style="color:${deadlineStr.includes('passed')?'var(--red)':'var(--orange)'};">⏱ ${deadlineStr}</span>`:''} Grade results in the <strong>Results & Grading</strong> tab.</div>
+    <button onclick="showPage('instr-exam-overview')" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">📊 Grade & Review →</button>
+  </div>`:`<div style="background:var(--accent-h);border:1px solid rgba(107,45,94,.15);border-radius:9px;padding:12px 16px;margin-top:12px;font-size:12px;color:var(--text2);">ℹ️ Exam will be sent automatically when you end the session.</div>`}
+</div>
+
+<!-- ═══ TAB: MATERIALS ═══ -->
+<div id="itc-materials" style="display:none;">
+  <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">Course Materials (from admin)</div>
+  <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:20px;">
+    ${s.mats.map(m=>`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;"><span style="font-size:19px;">${m.ic}</span><div style="flex:1;"><div style="font-size:12px;font-weight:600;">${m.n}</div><div style="font-size:10px;color:var(--text3);">${m.sz}</div></div><span style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:7px;background:${m.vb};color:${m.vc};white-space:nowrap;">${m.vis}</span><button onclick="toast('Downloading...','b')" style="padding:5px 11px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:11px;">📥</button></div>`).join('')}
+  </div>
+  <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">My Optional Files</div>
+  <div id="ioptfiles" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px;">
+    <div class="iopf" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;">
+      <span style="font-size:18px;">📘</span><div style="flex:1;"><div style="font-size:12px;font-weight:600;">NFPA Quick Reference Summary</div><div style="font-size:10px;color:var(--text3);">2.1 MB</div></div>
+      <button onclick="this.closest('.iopf').remove()" style="padding:5px 10px;border:1px solid rgba(220,38,38,.25);background:rgba(220,38,38,.06);color:var(--red);border-radius:6px;cursor:pointer;font-size:11px;">✕</button>
+    </div>
+  </div>
+  <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;border:1.5px dashed var(--border);border-radius:9px;cursor:pointer;background:var(--surface2);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+    <input type="file" style="display:none" onchange="addIOptFile(this)">
+    <span style="font-size:22px;">📎</span><div><div style="font-size:12px;font-weight:600;">Upload optional file for trainees</div><div style="font-size:10px;color:var(--text3);">PDF, PPT, DOCX, MP4</div></div>
+  </label>
+</div>
+
+<!-- ═══ TAB: RESULTS & GRADING ═══ -->
+${isComp?`
+<div id="itc-results" style="display:none;">
+  ${(()=>{
+    const isPaper2=s.exam.kind==='paper';
+    const eligible2=ATT.filter(p=>{
+      if(isPaper2){const att=Object.values(p.dayAtt||{}).some(Boolean);return att||(s.bypass&&p.bypassed);}
+      return isEligible(p,s);
+    });
+    const getScore2=pt=>{
+      if(isPaper2)return pt.paperScore??null;
+      const a=(pt.answers||[]).filter(x=>x.autoScore!=null).reduce((s,x)=>s+x.autoScore,0);
+      const m=(pt.answers||[]).filter(x=>x.manualScore!=null).reduce((s,x)=>s+x.manualScore,0);
+      return a+m;
+    };
+    const needsManual2=pt=>!isPaper2&&(pt.answers||[]).some(a=>a.manualScore===null&&(s.exam.qs||[]).find(q=>q.id===a.qid)?.type==='short');
+    const submitted2=eligible2.filter(p=>isPaper2?(p.paperScore!=null):((p.answers||[]).length>0));
+    const pending2=eligible2.filter(p=>isPaper2?(p.paperScore==null||!p.confirmed):needsManual2(p)||!p.confirmed);
+    const passed2=submitted2.filter(p=>{const sc=getScore2(p);return !needsManual2(p)&&sc!=null&&totMarks&&Math.round(sc/totMarks*100)>=s.exam.pm;});
+    const failed2=submitted2.filter(p=>{const sc=getScore2(p);return !needsManual2(p)&&sc!=null&&totMarks&&Math.round(sc/totMarks*100)<s.exam.pm;});
+
+    return `
+    <!-- KPI row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+      ${[
+        ['Submitted',   submitted2.length,  'var(--blue)',   '📨'],
+        ['Passed',      passed2.length,     'var(--green)',  '✅'],
+        ['Failed',      failed2.length,     'var(--red)',    '❌'],
+        ['Need Grading',pending2.length,    'var(--orange)', '⚠️'],
+      ].map(([l,v,c,ic])=>`
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;border-top:3px solid ${c};">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">${ic} ${l}</div>
+        <div style="font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${c};">${v}</div>
+      </div>`).join('')}
+    </div>
+
+    ${pending2.length>0?`
+    <div style="background:rgba(240,125,0,.07);border:1px solid rgba(240,125,0,.25);border-radius:9px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">⚠️</span>
+      <div style="flex:1;font-size:13px;font-weight:600;color:var(--orange);">${pending2.length} trainee${pending2.length>1?'s':''} ha${pending2.length>1?'ve':'s'} short-answer questions that need manual grading.</div>
+      <button onclick="CURR_REVIEW_PI=0;showPage('instr-exam-review')" style="padding:8px 18px;background:var(--orange);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Grade Now ✏️</button>
+    </div>`:''}
+
+    <!-- Trainees table -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:13px;font-weight:700;">👥 All Results</div>
+        <button onclick="showPage('instr-exam-overview')" style="padding:6px 14px;border:1px solid var(--border);background:var(--surface2);border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;">Full Overview →</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:var(--surface2);">${['Trainee','Score','%','Result',''].map(h=>`<th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
+        <tbody>
+        ${eligible2.map((p,pi)=>{
+          const sc2=getScore2(p);
+          const pct2=totMarks?Math.round(sc2/totMarks*100):0;
+          const pass2=pct2>=s.exam.pm;
+          const sub2=(p.answers||[]).length>0||(p.paperScore!=null);
+          const needM2=needsManual2(p);
+          const conf2=!!p.confirmed;
+          const na2=isPaper2?(p.paperScore==null):needM2;
+          return `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 14px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:28px;height:28px;border-radius:50%;background:${p.col};color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">${p.ini}</div>
+                <span style="font-size:12px;font-weight:700;">${p.n}</span>
+              </div>
+            </td>
+            <td style="padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;">${sub2?sc2+'/'+totMarks:'—'}</td>
+            <td style="padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${!sub2?'var(--text3)':pass2?'var(--green)':'var(--red)'};">${sub2?pct2+'%':'—'}</td>
+            <td style="padding:10px 14px;">
+              <span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:7px;background:${conf2?'rgba(22,163,74,.1)':!sub2?'rgba(217,119,6,.1)':needM2?'rgba(240,125,0,.1)':pass2?'rgba(22,163,74,.1)':'rgba(220,38,38,.1)'};color:${conf2?'var(--green)':!sub2?'var(--orange)':needM2?'var(--orange)':pass2?'var(--green)':'var(--red)'};">${conf2?'✓ Confirmed':!sub2?'Not submitted':needM2?'⚠ Pending':pass2?'Pass':'Fail'}</span>
+            </td>
+            <td style="padding:10px 14px;text-align:right;">
+              <button onclick="CURR_REVIEW_PI=${pi};showPage('instr-exam-review')" style="padding:5px 12px;border:1px solid ${na2?'rgba(240,125,0,.4)':!conf2?'rgba(107,45,94,.3)':'var(--border)'};background:${na2?'rgba(240,125,0,.08)':!conf2?'var(--accent-h)':'var(--surface2)'};color:${na2?'var(--orange)':!conf2?'var(--accent)':'var(--text2)'};border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">${conf2?'✓':isPaper2?'Enter Score →':needM2?'Grade ✏️':'Review →'}</button>
+            </td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  })()}
+</div>`:''}
+
+
+<div class="mo" id="mo-end-session">
+  <div style="background:var(--surface);border-radius:14px;padding:24px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-size:15px;font-weight:800;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <span>⏹ End Session</span>
+      <button onclick="closeModal('mo-end-session')" style="width:28px;height:28px;border:1px solid var(--border);background:var(--surface2);border-radius:7px;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+
+    <!-- Session summary -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 15px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${s.title}</div>
+      <div style="font-size:12px;color:var(--text2);">📝 ${s.exam.name} · Pass: ${s.exam.pm}% · Min Attendance: ${s.attMin}%</div>
+    </div>
+
+    ${s.exam.kind==='online'?`
+    <div style="background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--green);">📧 Exam will be sent to all <strong>eligible</strong> trainees after you confirm.</div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:8px;font-weight:600;">Exam Deadline — how long do trainees have to submit?</label>
+      <div style="display:flex;gap:0;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:10px;" id="dl-unit-btns">
+        ${[['Hours','hours'],['Days','days'],['Weeks','weeks']].map(([ l,v],i)=>`<button onclick="setDLUnit('${v}',this)" style="flex:1;padding:9px;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:inherit;background:${i===1?'var(--accent)':'var(--surface2)'};color:${i===1?'#fff':'var(--text2)'};transition:all .15s;">${l}</button>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="range" id="dl-slider" min="1" max="7" value="2"
+          oninput="document.getElementById('dl-val').textContent=this.value+' '+window._dlUnit"
+          style="flex:1;accent-color:var(--accent);">
+        <div id="dl-val" style="font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);min-width:70px;text-align:center;">2 days</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px;"><span>1</span><span>7</span></div>
+    </div>`:`
+    <div style="background:rgba(217,119,6,.07);border:1px solid rgba(217,119,6,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--orange);">📄 Paper exam — after ending the session, you will enter each trainee's score in the Results tab. Use bypass below to allow absent trainees to take the exam.</div>`}
+
+    <!-- Trainee eligibility list -->
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Trainee Eligibility</div>
+    <div id="end-sess-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px;">
+      ${ATT.map((p,pi)=>{
+        const elig=isEligible(p,s);
+        const pct=attPct(p,s.days.length);
+        const reason=s.days.length>1?`${pct??0}% attendance (min ${s.attMin}%)`:'Absent';
+        return `<div id="endr-${pi}" style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:${elig?'rgba(22,163,74,.05)':'rgba(220,38,38,.04)'};border:1px solid ${elig?'rgba(22,163,74,.18)':'rgba(220,38,38,.18)'};border-radius:9px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:${p.col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;">${p.ini}</div>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:700;">${p.n}</div>
+            ${!elig?`<div style="font-size:10px;color:var(--red);margin-top:2px;">✗ ${reason}</div>`:`<div style="font-size:10px;color:var(--green);margin-top:2px;">✓ Eligible</div>`}
+          </div>
+          <span id="end-status-${pi}" style="font-size:10px;font-weight:700;color:${elig?'var(--green)':'var(--red)'};">${elig?'Will receive exam':'No exam'}</span>
+          ${!elig&&s.bypass?`
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:10px;color:var(--text2);">Bypass?</span>
+            <button id="bypass-yes-${pi}" onclick="endSessToggleBypass(${pi},true)" style="padding:4px 10px;border:1.5px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .14s;">Yes</button>
+            <button id="bypass-no-${pi}" onclick="endSessToggleBypass(${pi},false)" style="padding:4px 10px;border:1.5px solid var(--accent);background:var(--accent-h);color:var(--accent);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;transition:all .14s;">No</button>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--border);">
+      <button onclick="closeModal('mo-end-session')" style="padding:9px 18px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;">Cancel</button>
+      <button onclick="confirmEndSession()" style="padding:9px 22px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:700;">Confirm End Session</button>
+    </div>
   </div>
 </div>
 
-<!-- Participants table -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-size:13px;font-weight:700;">👥 Participants (${PARTICIPANTS.length})</div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-sm btn-outline" onclick="showToast('Exporting attendance sheet...','b')">📥 Export Sheet</button>
-      <button class="btn btn-sm btn-green" onclick="showToast('3 certificates generated!','g')">🏆 Generate Certs</button>
+<!-- ═══ GRADE MODAL ═══ -->
+<div class="mo" id="mo-grade">
+  <div style="background:var(--surface);border-radius:14px;padding:24px;width:540px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);" id="mo-grade-body">
+  </div>
+</div>
+
+<!-- ═══ SESSION REPORT MODAL ═══ -->
+<div class="mo" id="mo-session-report">
+  <div style="background:var(--surface);border-radius:14px;padding:24px;width:600px;max-width:95vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-size:15px;font-weight:800;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      📊 Session Report
+      <button onclick="closeModal('mo-session-report')" style="width:28px;height:28px;border:1px solid var(--border);background:var(--surface2);border-radius:7px;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+
+    <!-- Summary -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">${s.title}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+        ${(()=>{
+          const eli=ATT.filter(p=>p.present||p.bypassed);
+          const totM=totMarks||1;
+          const scored=eli.map(p=>{const mc=(p.answers||[]).reduce((a,x)=>a+(x.autoScore||0)+(x.manualScore||0),0);return mc;});
+          const avg=scored.length?Math.round(scored.reduce((a,b)=>a+b,0)/scored.length):0;
+          const pct=Math.round(avg/totM*100);
+          const pass=scored.filter(x=>Math.round(x/totM*100)>=s.exam.pm).length;
+          return [['Enrolled',ATT.length,'var(--text)'],['Present',ATT.filter(p=>p.present).length,'var(--green)'],['Avg Score',pct+'%','var(--accent)'],['Pass Rate',eli.length?Math.round(pass/eli.length*100)+'%':'—','var(--green)']].map(([l,v,c])=>`<div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;"><div style="font-size:10px;color:var(--text3);margin-bottom:4px;">${l}</div><div style="font-size:19px;font-weight:800;color:${c};">${v}</div></div>`).join('');
+        })()}
+      </div>
+    </div>
+
+    <!-- Trainee results -->
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">Results by Trainee</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:var(--surface2);">${['Trainee','Present','Score','%','Result','Manual Needed'].map(h=>`<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
+        <tbody>
+        ${ATT.map(p=>{
+          const eli=p.present||p.bypassed;
+          const mc=(p.answers||[]).reduce((a,x)=>a+(x.autoScore||0)+(x.manualScore||0),0);
+          const pct=totMarks?Math.round(mc/totMarks*100):0;
+          const pass=pct>=s.exam.pm;
+          const needMan=(p.answers||[]).some(a=>a.manualScore===null&&(s.exam.qs||[]).find(q=>q.id===a.qid)?.type==='short');
+          return `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:9px 12px;"><div style="display:flex;align-items:center;gap:7px;"><div style="width:24px;height:24px;border-radius:50%;background:${p.col};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">${p.ini}</div><span style="font-size:12px;font-weight:600;">${p.n}</span></div></td>
+            <td style="padding:9px 12px;font-size:12px;">${p.present?'✅':p.bypassed?'⚠ Bypassed':'❌'}</td>
+            <td style="padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;">${eli?mc+'/'+totMarks:'—'}</td>
+            <td style="padding:9px 12px;font-size:12px;font-weight:700;color:${eli?pass?'var(--green)':'var(--red)':'var(--text3)'};">${eli?pct+'%':'—'}</td>
+            <td style="padding:9px 12px;"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:${!eli?'rgba(217,119,6,.1)':needMan?'rgba(217,119,6,.1)':pass?'rgba(22,163,74,.1)':'rgba(220,38,38,.1)'};color:${!eli?'var(--orange)':needMan?'var(--orange)':pass?'var(--green)':'var(--red)'};">${!eli?'N/A':needMan?'Pending':pass?'Pass':'Fail'}</span></td>
+            <td style="padding:9px 12px;">${needMan?`<button onclick="closeModal('mo-session-report');openGradeModal(${ATT.indexOf(p)})" style="padding:4px 10px;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);color:var(--orange);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">Grade Now</button>`:'<span style="color:var(--text3);font-size:11px;">—</span>'}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button onclick="toast('Exporting report...','b')" style="padding:9px 18px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;">📥 Export</button>
+      <button onclick="closeModal('mo-session-report')" style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Close</button>
     </div>
   </div>
-  <table>
-    <thead><tr><th>#</th><th>Employee</th><th>Dept</th><th>Type</th><th>Attendance</th><th>Score</th><th>Result</th><th>Certificate</th></tr></thead>
+</div>`;
+}
+
+function iTab(tab){
+  ['attendance','exam','materials','results'].forEach(t=>{
+    const tc=document.getElementById('itc-'+t);
+    const tb=document.getElementById('itab-'+t);
+    if(tc) tc.style.display=t===tab?'block':'none';
+    if(tb){
+      const isOn=t===tab;
+      tb.style.background=isOn?'var(--accent)':'transparent';
+      tb.style.color=isOn?'#fff':'var(--text2)';
+    }
+  });
+}
+
+function openGradeModal(pi){
+  const s=IG(CSID);const p=s.parts[pi];if(!p)return;
+  const shortQs=(s.exam.qs||[]).filter(q=>q.type==='short');
+  const body=document.getElementById('mo-grade-body');
+  if(!body)return;
+  body.innerHTML=`
+    <div style="font-size:14px;font-weight:800;margin-bottom:4px;">Grade: ${p.n}</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Short-answer questions require manual grading.</div>
+    ${shortQs.map(q=>{
+      const ans=p.answers?.find(a=>a.qid===q.id);
+      return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(217,119,6,.1);color:var(--orange);">Short Answer · ${q.marks} marks</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">${q.q}</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;"><div style="font-size:10px;color:var(--text3);margin-bottom:3px;">Trainee's Answer:</div><div style="font-size:13px;">${ans?.text||'No answer provided.'}</div></div>
+        <div style="background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);border-radius:8px;padding:10px 12px;margin-bottom:10px;"><div style="font-size:10px;font-weight:700;color:var(--green);margin-bottom:3px;">Model Answer:</div><div style="font-size:12px;color:var(--text2);">${q.modelAns}</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:12px;color:var(--text2);">Score:</span>
+          <input type="number" min="0" max="${q.marks}" value="${ans?.manualScore??''}" placeholder="0" id="mg-${pi}-${q.id}" style="width:64px;text-align:center;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;outline:none;" oninput="this.style.borderColor=+this.value>=0&&+this.value<=${q.marks}?'var(--green)':'var(--red)'">
+          <span style="font-size:12px;color:var(--text2);">/ ${q.marks}</span>
+          <div style="flex:1;display:flex;gap:5px;">${Array.from({length:q.marks+1},(_,i)=>`<button onclick="document.getElementById('mg-${pi}-${q.id}').value=${i};document.getElementById('mg-${pi}-${q.id}').style.borderColor='var(--green)'" style="padding:5px 10px;border:1px solid var(--border);background:var(--surface2);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">${i}</button>`).join('')}</div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--border);">
+      <button onclick="closeModal('mo-grade')" style="padding:9px 18px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;">Cancel</button>
+      <button onclick="saveGrades(${pi})" style="padding:9px 22px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:700;">Save Grades ✓</button>
+    </div>`;
+  openModal('mo-grade');
+}
+
+function saveGrades(pi){
+  const s=IG(CSID);const p=s.parts[pi];if(!p)return;
+  const shortQs=(s.exam.qs||[]).filter(q=>q.type==='short');
+  shortQs.forEach(q=>{
+    const inp=document.getElementById(`mg-${pi}-${q.id}`);
+    if(inp&&inp.value!==''){
+      let ans=p.answers?.find(a=>a.qid===q.id);
+      if(!ans){p.answers=p.answers||[];p.answers.push({qid:q.id,text:'',autoScore:null,manualScore:+inp.value});}
+      else{ans.manualScore=+inp.value;}
+    }
+  });
+  closeModal('mo-grade');
+  showPage('instr-session-detail');
+  toast('Grades saved for '+p.n,'g');
+}
+
+function tAtt(pi){} // legacy stub
+
+let CURR_DAY_IDX=0;
+
+function switchAttDay(di){
+  CURR_DAY_IDX=di;
+  const s=IG(CSID);
+  // switch tab styling
+  s.days.forEach((_,i)=>{
+    const tab=document.getElementById('attdaytab-'+i);
+    const panel=document.getElementById('attday-'+i);
+    if(tab){
+      tab.style.borderBottomColor=i===di?'var(--accent)':'transparent';
+      tab.style.color=i===di?'var(--accent)':'var(--text2)';
+    }
+    if(panel) panel.style.display=i===di?'block':'none';
+  });
+}
+
+function tAttDay(pi,di){
+  const s=IG(CSID);if(!s.parts[pi])return;
+  const tog=document.getElementById(`ptg-${di}-${pi}`);if(!tog)return;
+  const on=tog.classList.toggle('on');
+  if(!s.parts[pi].dayAtt)s.parts[pi].dayAtt={};
+  s.parts[pi].dayAtt[di]=on;
+  // update row bg
+  const row=document.getElementById(`att-row-${di}-${pi}`);
+  if(row) row.style.background=on?'rgba(22,163,74,.025)':'transparent';
+  // update counter
+  const ctr=document.getElementById('daypres-'+di);
+  if(ctr) ctr.textContent=s.parts.filter(p=>p.dayAtt&&p.dayAtt[di]).length;
+  // update day tab badge
+  const tabEl=document.getElementById('attdaytab-'+di);
+  if(tabEl){
+    const cnt=s.parts.filter(p=>p.dayAtt&&p.dayAtt[di]).length;
+    let badge=tabEl.querySelector('.daybadge');
+    if(!badge){badge=document.createElement('span');badge.className='daybadge';badge.style.cssText='margin-left:6px;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;';tabEl.appendChild(badge);}
+    badge.textContent=cnt+'/'+s.parts.length;
+  }
+  refreshAttRow(pi,s);
+}
+
+function refreshAttRow(pi,s){
+  const p=s.parts[pi];
+  const pct=attPct(p,s.days.length);
+  const elig=isEligible(p,s);
+  const attColor=pct===null?'var(--text2)':pct>=s.attMin?'var(--green)':'var(--red)';
+  // update % in all day panels
+  s.days.forEach((_,di)=>{
+    const pattEl=document.getElementById('patt-'+pi);
+    const lblEl=document.getElementById('patt-label-'+pi);
+    if(pattEl){pattEl.textContent=pct!==null?pct+'%':'—';pattEl.style.color=attColor;}
+    if(lblEl){lblEl.textContent=pct!==null?pct+'% attendance':'—';lblEl.style.color=attColor;}
+    const peligEl=document.getElementById('pelig-'+pi);
+    if(peligEl){
+      peligEl.textContent=elig?'✓ Eligible':(s.days.length>1?`✗ ${pct??0}% < ${s.attMin}%`:'✗ Absent');
+      peligEl.style.background=elig?'rgba(22,163,74,.1)':'rgba(220,38,38,.1)';
+      peligEl.style.color=elig?'var(--green)':'var(--red)';
+    }
+  });
+  const pbpEl=document.getElementById('pbp-'+pi);
+  if(pbpEl) pbpEl.style.display=(!elig&&s.bypass)?'inline-block':'none';
+}
+
+function tBypass(pi){
+  const s=IG(CSID);if(!s.parts[pi])return;
+  const was=s.parts[pi].bypassed||false;
+  s.parts[pi].bypassed=!was;
+  refreshAttRow(pi,s);
+  const btn=document.getElementById('pbp-'+pi);
+  if(btn){btn.textContent=!was?'✓ Bypassed':'Bypass?';btn.style.background=!was?'rgba(22,163,74,.07)':'rgba(220,38,38,.05)';btn.style.borderColor=!was?'rgba(22,163,74,.3)':'rgba(220,38,38,.25)';btn.style.color=!was?'var(--green)':'var(--red)';}
+  toast(!was?'Bypass granted — trainee can take exam':'Bypass removed',!was?'g':'o');
+}
+
+function markAllPDay(){
+  const s=IG(CSID);
+  const di=CURR_DAY_IDX;
+  s.parts.forEach((p,pi)=>{
+    if(!p.dayAtt)p.dayAtt={};
+    p.dayAtt[di]=true;
+    const tog=document.getElementById(`ptg-${di}-${pi}`);
+    if(tog) tog.classList.add('on');
+    const row=document.getElementById(`att-row-${di}-${pi}`);
+    if(row) row.style.background='rgba(22,163,74,.025)';
+    refreshAttRow(pi,s);
+  });
+  const ctr=document.getElementById('daypres-'+di);
+  if(ctr) ctr.textContent=s.parts.length;
+  toast('All marked present for Day '+(di+1),'g');
+}
+
+function markAllP(){markAllPDay();}
+
+function saveNote(pi,di,val){
+  const s=IG(CSID);if(!s.parts[pi])return;
+  if(!s.parts[pi].dayNotes)s.parts[pi].dayNotes={};
+  s.parts[pi].dayNotes[di]=val;
+}
+
+function saveDayNote(di,val){
+  const s=IG(CSID);
+  if(!s.dayNotes)s.dayNotes={};
+  s.dayNotes[di]=val;
+}
+
+// Bypass toggle inside End Session modal
+function endSessToggleBypass(pi,grant){
+  const s=IG(CSID);
+  if(!s.parts[pi])return;
+  s.parts[pi].bypassed=grant;
+  // update modal row
+  const row=document.getElementById('endr-'+pi);
+  const statusEl=document.getElementById('end-status-'+pi);
+  const yesBtn=document.getElementById('bypass-yes-'+pi);
+  const noBtn=document.getElementById('bypass-no-'+pi);
+  if(grant){
+    if(row){row.style.background='rgba(22,163,74,.05)';row.style.borderColor='rgba(22,163,74,.18)';}
+    if(statusEl){statusEl.textContent='Will receive exam';statusEl.style.color='var(--green)';}
+    if(yesBtn){yesBtn.style.background='var(--accent)';yesBtn.style.color='#fff';yesBtn.style.borderColor='var(--accent)';}
+    if(noBtn){noBtn.style.background='var(--surface)';noBtn.style.color='var(--text2)';noBtn.style.borderColor='var(--border)';}
+  } else {
+    if(row){row.style.background='rgba(220,38,38,.04)';row.style.borderColor='rgba(220,38,38,.18)';}
+    if(statusEl){statusEl.textContent='No exam';statusEl.style.color='var(--red)';}
+    if(yesBtn){yesBtn.style.background='var(--surface)';yesBtn.style.color='var(--text2)';yesBtn.style.borderColor='var(--border)';}
+    if(noBtn){noBtn.style.background='var(--accent-h)';noBtn.style.color='var(--accent)';noBtn.style.borderColor='var(--accent)';}
+  }
+}
+
+function confirmEndSession(){
+  closeModal('mo-end-session');
+  const s=IG(CSID);
+  const unit=window._dlUnit||'days';
+  const val=+(document.getElementById('dl-slider')?.value||2);
+  const ms={hours:3600000,days:86400000,weeks:604800000}[unit]||86400000;
+  if(s.exam.kind==='online'){
+    s.examDeadline = new Date(Date.now()+val*ms).toISOString();
+    setStatus(CSID,'ended');
+    toast('Session ended — exam sent to eligible trainees! Waiting for submissions.','g');
+  } else {
+    setStatus(CSID,'review');
+    toast('Session ended — enter paper scores in Results & Grading tab.','g');
+  }
+  showPage('instr-session-detail');
+}
+
+
+function saveDayAtt(di){
+  const s=IG(CSID);
+  const cnt=s.parts.filter(p=>p.dayAtt&&p.dayAtt[di]).length;
+  const statusEl=document.getElementById('day-save-status-'+di);
+  if(statusEl) statusEl.textContent='✓ Saved — '+cnt+' present · '+new Date().toLocaleTimeString();
+  toast('Day '+(di+1)+' attendance saved ('+cnt+'/'+s.parts.length+' present)','g');
+}
+
+
+function addIOptFile(input){const f=input.files[0];if(!f)return;const list=document.getElementById('ioptfiles');if(!list)return;const d=document.createElement('div');d.className='iopf';d.style.cssText='display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;margin-bottom:7px;';d.innerHTML=`<span style="font-size:18px;">📎</span><div style="flex:1;"><div style="font-size:12px;font-weight:600;">${f.name}</div><div style="font-size:10px;color:var(--text3);">${(f.size/1024/1024).toFixed(1)} MB</div></div><button onclick="this.closest('.iopf').remove()" style="padding:5px 10px;border:1px solid rgba(220,38,38,.25);background:rgba(220,38,38,.06);color:var(--red);border-radius:6px;cursor:pointer;font-size:11px;">✕</button>`;list.appendChild(d);toast(f.name+' uploaded','g');}
+
+// ══ PROFILE ══════════════════════════════════════════════════════
+window._dlUnit='days';
+function setDLUnit(unit, btn){
+  window._dlUnit=unit;
+  const max={hours:72,days:14,weeks:4}[unit];
+  const slider=document.getElementById('dl-slider');
+  const valEl=document.getElementById('dl-val');
+  if(slider){slider.max=max;slider.value=unit==='hours'?24:unit==='days'?2:1;}
+  if(valEl)valEl.textContent=(slider?slider.value:'?')+' '+unit;
+  document.querySelectorAll('#dl-unit-btns button').forEach(b=>{
+    b.style.background=b===btn?'var(--accent)':'var(--surface2)';
+    b.style.color=b===btn?'#fff':'var(--text2)';
+  });
+}
+
+// ── EXAM REVIEW PAGE ──────────────────────────────────────────────
+let CURR_REVIEW_PI = 0;
+
+// ── EXAM OVERVIEW PAGE ────────────────────────────────────────────
+function instrExamOverview(){
+  const s   = IG(CSID);
+  const qs  = s.exam.qs || [];
+  const ATT = s.parts;
+  const eligible = ATT.filter(p=>isEligible(p,s));
+  const isPaper  = s.exam.kind==='paper';
+  const totMarks = isPaper ? (s.exam.totalMarks||20) : qs.reduce((a,q)=>a+q.marks,0);
+
+  const getScore = pt => {
+    if(isPaper) return pt.paperScore??null;
+    const auto   = (pt.answers||[]).filter(a=>a.autoScore!=null).reduce((a,x)=>a+x.autoScore,0);
+    const manual = (pt.answers||[]).filter(a=>a.manualScore!=null).reduce((a,x)=>a+x.manualScore,0);
+    return auto+manual;
+  };
+  const needsAction = pt => {
+    if(isPaper) return pt.paperScore===null||pt.paperScore===undefined;
+    return (pt.answers||[]).some(a=>a.manualScore===null&&qs.find(q=>q.id===a.qid)?.type==='short');
+  };
+  const isConfirmed = pt => !!pt.confirmed;
+
+  const submitted   = eligible.filter(p=>getScore(p)!==null);
+  const pending     = eligible.filter(p=>needsAction(p)||!isConfirmed(p));
+  const confirmed   = eligible.filter(p=>isConfirmed(p));
+  const passed      = confirmed.filter(p=>{const sc=getScore(p);return sc!==null&&totMarks&&Math.round(sc/totMarks*100)>=s.exam.pm;});
+  const failed      = confirmed.filter(p=>{const sc=getScore(p);return sc!==null&&totMarks&&Math.round(sc/totMarks*100)<s.exam.pm;});
+
+  return `
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+  <button onclick="showPage('instr-session-detail');iTab('results')" style="padding:6px 14px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;">← Session</button>
+  <div style="flex:1;"><div style="font-size:18px;font-weight:800;">${s.exam.name}</div>
+    <div style="font-size:12px;color:var(--text2);">${s.title} · ${isPaper?'📄 Paper':'💻 Online'} · Pass: ${s.exam.pm}% · Total: ${totMarks} marks</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+  ${[['Eligible',eligible.length,'var(--accent)','👥'],['Confirmed',confirmed.length,'var(--blue)','✅'],['Passed',passed.length,'var(--green)','🏆'],['Failed',failed.length,'var(--red)','❌']].map(([l,v,c,ic])=>`
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px;border-top:3px solid ${c};">
+    <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">${ic} ${l}</div>
+    <div style="font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${c};">${v}</div>
+  </div>`).join('')}
+</div>
+
+${pending.length>0?`<div style="background:rgba(240,125,0,.07);border:1px solid rgba(240,125,0,.25);border-radius:9px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+  <span style="font-size:18px;">⚠️</span>
+  <div style="flex:1;font-size:13px;font-weight:600;color:var(--orange);">${pending.length} trainee${pending.length>1?'s':''} still need${pending.length===1?'s':''} review & confirmation.</div>
+  <button onclick="CURR_REVIEW_PI=0;showPage('instr-exam-review')" style="padding:8px 18px;background:var(--orange);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Review All ✏️</button>
+</div>`:'<div style="background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.2);border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;color:var(--green);">✅ All trainees reviewed and confirmed.</div>'}
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;">
+  <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">👥 All Trainees</div>
+  <table style="width:100%;border-collapse:collapse;">
+    <thead><tr style="background:var(--surface2);">${['Trainee','Score','%','Result','Status',''].map(h=>`<th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">${h}</th>`).join('')}</tr></thead>
     <tbody>
-    ${PARTICIPANTS.map((p,i)=>`
-    <tr style="cursor:pointer" onclick="showPage('admin-emp-detail')">
-      <td style="color:var(--text3)">${i+1}</td>
-      <td><div style="display:flex;align-items:center;gap:8px">
-        <div style="width:28px;height:28px;border-radius:50%;background:${p.present?'rgba(0,212,170,.15)':'rgba(255,76,106,.12)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${p.present?'var(--accent)':'var(--red)'}">${p.i}</div>
-        <div><div style="font-weight:600;color:var(--text);font-size:12px">${p.n}</div><div style="font-size:10px;color:var(--text3)">${p.role}</div></div>
-      </div></td>
-      <td style="font-size:12px">${p.dept}</td>
-      <td><span class="badge ${p.type==='Self-Reg'?'b':'o'}" style="font-size:9px">${p.type}</span></td>
-      <td>${p.present?'<span style="color:var(--accent);font-weight:700">✓ Present</span>':'<span style="color:var(--red);font-weight:700">✗ Absent</span>'}</td>
-      <td style="font-family:\'JetBrains Mono\',monospace;color:${scoreColor(p.score)};font-weight:700">${p.score??'—'}</td>
-      <td><span class="badge ${resultCls(p.result)}">${p.result}</span></td>
-      <td>${p.result==='Pass'?`<button class="btn btn-sm btn-green" onclick="event.stopPropagation();showToast('Downloading certificate...','b')" style="font-size:9px">📥 Cert</button>`:'<span style="font-size:10px;color:var(--text3)">—</span>'}</td>
-    </tr>`).join('')}
+    ${eligible.map((p,pi)=>{
+      const sc  =getScore(p);
+      const pct2=sc!==null&&totMarks?Math.round(sc/totMarks*100):null;
+      const pass=pct2!==null&&pct2>=s.exam.pm;
+      const conf=isConfirmed(p);
+      const na  =needsAction(p);
+      return `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:10px 14px;"><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:50%;background:${p.col};color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">${p.ini}</div><span style="font-size:12px;font-weight:700;">${p.n}</span></div></td>
+        <td style="padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;">${sc!==null?sc+'/'+totMarks:'—'}</td>
+        <td style="padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:${pct2===null?'var(--text3)':pass?'var(--green)':'var(--red)'};">${pct2!==null?pct2+'%':'—'}</td>
+        <td style="padding:10px 14px;">${sc!==null&&!na?`<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:7px;background:${pass?'rgba(22,163,74,.1)':'rgba(220,38,38,.1)'};color:${pass?'var(--green)':'var(--red)'};">${pass?'Pass':'Fail'}</span>`:'<span style="color:var(--text3);font-size:11px;">—</span>'}</td>
+        <td style="padding:10px 14px;"><span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:7px;background:${conf?'rgba(22,163,74,.1)':na?'rgba(240,125,0,.1)':'rgba(29,78,216,.1)'};color:${conf?'var(--green)':na?'var(--orange)':'var(--blue)'};">${conf?'✓ Confirmed':na?'⚠ Needs entry':'Ready to confirm'}</span></td>
+        <td style="padding:10px 14px;text-align:right;"><button onclick="CURR_REVIEW_PI=${pi};showPage('instr-exam-review')" style="padding:5px 12px;border:1px solid ${!conf?'rgba(107,45,94,.3)':'var(--border)'};background:${!conf?'var(--accent-h)':'var(--surface2)'};color:${!conf?'var(--accent)':'var(--text2)'};border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">${na?'Enter Score':'Review'}</button></td>
+      </tr>`;
+    }).join('')}
     </tbody>
   </table>
 </div>`;
 }
+
+function instrExamReview(){
+  const s   = IG(CSID);
+  const qs  = s.exam.qs || [];
+  const ATT = s.parts;
+  const eligible = ATT.filter(p=>isEligible(p,s));
+  const isPaper  = s.exam.kind==='paper';
+  const totMarks = isPaper ? (s.exam.totalMarks||20) : qs.reduce((a,q)=>a+q.marks,0);
+  const p   = eligible[CURR_REVIEW_PI] || ATT[0];
+  if(!p) return `<div style="padding:20px;">No eligible trainees.</div>`;
+
+  const getScore = pt => {
+    if(isPaper) return pt.paperScore??null;
+    const a=(pt.answers||[]).filter(x=>x.autoScore!=null).reduce((s,x)=>s+x.autoScore,0);
+    const m=(pt.answers||[]).filter(x=>x.manualScore!=null).reduce((s,x)=>s+x.manualScore,0);
+    return a+m;
+  };
+  const needsAction = pt => isPaper?(pt.paperScore===null||pt.paperScore===undefined):(pt.answers||[]).some(a=>a.manualScore===null&&qs.find(q=>q.id===a.qid)?.type==='short');
+
+  const sc     = getScore(p);
+  const pct    = sc!==null&&totMarks?Math.round(sc/totMarks*100):null;
+  const pass   = pct!==null&&pct>=s.exam.pm;
+  const na     = needsAction(p);
+  const conf   = !!p.confirmed;
+
+  const shortQs   = qs.filter(q=>q.type==='short');
+  const gradedCnt = shortQs.filter(q=>{const ans=(p.answers||[]).find(a=>a.qid===q.id);return ans?.manualScore!=null;}).length;
+
+  return `
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+  <button onclick="showPage('instr-exam-overview')" style="padding:6px 14px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;">← Overview</button>
+  <div style="font-size:16px;font-weight:800;flex:1;">${s.exam.name}</div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <button onclick="if(CURR_REVIEW_PI>0){CURR_REVIEW_PI--;showPage('instr-exam-review');}" style="padding:7px 14px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;" ${CURR_REVIEW_PI===0?'disabled style="opacity:.4"':''}>← Prev</button>
+    <span style="font-size:12px;color:var(--text2);padding:0 4px;">${CURR_REVIEW_PI+1} / ${eligible.length}</span>
+    <button onclick="if(CURR_REVIEW_PI<${eligible.length-1}){CURR_REVIEW_PI++;showPage('instr-exam-review');}" style="padding:7px 14px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;" ${CURR_REVIEW_PI===eligible.length-1?'disabled style="opacity:.4"':''}>Next →</button>
+  </div>
+</div>
+
+<!-- Trainee pills -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+  <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;">Trainee:</span>
+  ${eligible.map((pt,i)=>{
+    const ptSc=getScore(pt);const ptPct=ptSc!==null&&totMarks?Math.round(ptSc/totMarks*100):null;
+    const ptNA=needsAction(pt);const ptConf=!!pt.confirmed;
+    const isActive=i===CURR_REVIEW_PI;
+    return `<button onclick="CURR_REVIEW_PI=${i};showPage('instr-exam-review')" style="display:flex;align-items:center;gap:7px;padding:7px 12px;border:2px solid ${isActive?'var(--accent)':ptConf?'rgba(22,163,74,.3)':'var(--border)'};background:${isActive?'var(--accent-h)':ptConf?'rgba(22,163,74,.05)':'var(--surface2)'};border-radius:9px;cursor:pointer;transition:all .14s;">
+      <div style="width:24px;height:24px;border-radius:50%;background:${pt.col};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">${pt.ini}</div>
+      <div style="text-align:left;"><div style="font-size:11px;font-weight:700;color:${isActive?'var(--accent)':ptConf?'var(--green)':'var(--text)'};">${pt.n.split(' ')[0]}</div>
+        <div style="font-size:9px;color:${ptNA?'var(--orange)':ptConf?'var(--green)':'var(--text3)'};">${ptConf?'✓ Confirmed':ptNA?'⚠ Pending':'—'}</div>
+      </div>
+    </button>`;
+  }).join('')}
+</div>
+
+<!-- Trainee header card -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+  <div style="width:46px;height:46px;border-radius:50%;background:${p.col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;">${p.ini}</div>
+  <div style="flex:1;"><div style="font-size:16px;font-weight:800;">${p.n}</div><div style="font-size:12px;color:var(--text2);">${s.exam.name} · ${isPaper?'Paper':'Online'}</div></div>
+  ${!isPaper&&shortQs.length>0?`<div style="background:${na?'rgba(240,125,0,.08)':'rgba(22,163,74,.07)'};border:1px solid ${na?'rgba(240,125,0,.25)':'rgba(22,163,74,.2)'};border-radius:9px;padding:10px 14px;text-align:center;">
+    <div style="font-size:16px;font-weight:800;color:${na?'var(--orange)':'var(--green)'};">${gradedCnt}/${shortQs.length}</div>
+    <div style="font-size:10px;color:var(--text2);">Graded</div>
+  </div>`:''}
+  <div style="display:flex;gap:16px;border-left:1px solid var(--border);padding-left:16px;">
+    <div style="text-align:center;"><div style="font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);">${sc!==null?sc+'/'+totMarks:'—'}</div><div style="font-size:10px;color:var(--text3);">Score</div></div>
+    <div style="text-align:center;"><div style="font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${pct===null?'var(--text3)':pass?'var(--green)':'var(--red)'};">${pct!==null?pct+'%':'—'}</div><div style="font-size:10px;color:var(--text3);">%</div></div>
+    <div style="text-align:center;"><div style="font-size:14px;font-weight:800;padding:6px 14px;border-radius:8px;background:${conf?'rgba(22,163,74,.1)':na?'rgba(240,125,0,.1)':pct===null?'rgba(217,119,6,.1)':pass?'rgba(22,163,74,.1)':'rgba(220,38,38,.1)'};color:${conf?'var(--green)':na?'var(--orange)':pct===null?'var(--orange)':pass?'var(--green)':'var(--red)'};">${conf?'✓ Confirmed':na?'⚠ Pending':pct===null?'—':pass?'Pass':'Fail'}</div><div style="font-size:10px;color:var(--text3);margin-top:4px;">Status</div></div>
+  </div>
+</div>
+
+<!-- PAPER EXAM: score entry -->
+${isPaper?`
+<div style="background:var(--surface);border:1.5px solid ${na?'rgba(240,125,0,.35)':'rgba(22,163,74,.25)'};border-radius:11px;overflow:hidden;margin-bottom:16px;">
+  <div style="padding:13px 18px;border-bottom:1px solid var(--border);background:${na?'rgba(240,125,0,.04)':'rgba(22,163,74,.04)'};display:flex;align-items:center;gap:10px;">
+    <span style="font-size:18px;">${na?'📝':'✓'}</span>
+    <div style="font-size:13px;font-weight:700;color:${na?'var(--orange)':'var(--green)'};">${na?'Enter Paper Exam Score':'Score Entered'}</div>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button onclick="toast('Downloading exam file...','b')" style="padding:6px 12px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;">📄 Exam File</button>
+      <button onclick="toast('Downloading answer key...','b')" style="padding:6px 12px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;">🔑 Answer Key</button>
+    </div>
+  </div>
+  <div style="padding:18px 20px;">
+    <!-- Score input -->
+    <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+      <div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600;">Score out of ${totMarks}</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="number" min="0" max="${totMarks}" id="paper-score-inp"
+            value="${p.paperScore??''}" placeholder="e.g. 15"
+            style="width:80px;text-align:center;border:2px solid ${na?'var(--orange)':'var(--green)'};border-radius:8px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;outline:none;background:var(--surface);"
+            oninput="this.style.borderColor=+this.value>=0&&+this.value<=${totMarks}?'var(--green)':'var(--red)';document.getElementById('paper-pct').textContent=Math.round(+this.value/${totMarks}*100)+'%'">
+          <span style="font-size:16px;color:var(--text2);">/ ${totMarks}</span>
+          <span style="font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:7px 14px;border-radius:8px;background:var(--surface2);color:var(--accent);" id="paper-pct">${p.paperScore!=null?Math.round(p.paperScore/totMarks*100)+'%':'—'}</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3);">Pass: ${Math.ceil(totMarks*s.exam.pm/100)} / ${totMarks} (${s.exam.pm}%)</div>
+      </div>
+      ${p.paperScore!=null?`<div style="padding:10px 16px;background:${Math.round(p.paperScore/totMarks*100)>=s.exam.pm?'rgba(22,163,74,.08)':'rgba(220,38,38,.07)'};border:1px solid ${Math.round(p.paperScore/totMarks*100)>=s.exam.pm?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'};border-radius:9px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:${Math.round(p.paperScore/totMarks*100)>=s.exam.pm?'var(--green)':'var(--red)'};">${Math.round(p.paperScore/totMarks*100)>=s.exam.pm?'Pass':'Fail'}</div>
+        <div style="font-size:11px;color:var(--text2);">${p.paperScore} / ${totMarks}</div>
+      </div>`:``}
+    </div>
+    <!-- Attachment -->
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;">📎 Attach Answer Sheet (optional)</div>
+      <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border:1.5px dashed var(--border);border-radius:9px;cursor:pointer;background:var(--surface2);transition:all .14s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'" id="paper-att-label-${CURR_REVIEW_PI}">
+        <input type="file" accept=".pdf,.jpg,.png" style="display:none" onchange="savePaperAttachment(this,${CURR_REVIEW_PI})">
+        <span style="font-size:20px;">📎</span>
+        <div><div style="font-size:12px;font-weight:600;" id="paper-att-name-${CURR_REVIEW_PI}">${p.attachmentName||'Upload scanned answer sheet'}</div><div style="font-size:10px;color:var(--text3);">PDF, JPG, PNG</div></div>
+        ${p.attachmentName?`<span style="font-size:10px;font-weight:700;color:var(--green);margin-left:auto;">✓ Uploaded</span>`:''}
+      </label>
+    </div>
+  </div>
+</div>`:`
+<!-- ONLINE EXAM: questions review -->
+<div style="display:flex;flex-direction:column;gap:12px;">
+  ${qs.map((q,qi)=>{
+    const ans     =(p.answers||[]).find(a=>a.qid===q.id);
+    const isShort = q.type==='short';
+    const isMCQ   = q.type==='mcq';
+    const isTF    = q.type==='tf';
+    const autoSc  = ans?.autoScore??null;
+    const manSc   = ans?.manualScore??null;
+    const qSc     = isShort?manSc:autoSc;
+    const correct = !isShort?(ans?.sel===q.correct):null;
+    const needsG  = isShort&&manSc===null;
+    return `<div style="background:var(--surface);border:2px solid ${needsG?'rgba(240,125,0,.4)':qSc===q.marks?'rgba(22,163,74,.25)':qSc!==null&&qSc<q.marks?'rgba(220,38,38,.2)':'var(--border)'};border-radius:11px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:${needsG?'rgba(240,125,0,.04)':'var(--surface2)'};">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;">Q${qi+1}</div>
+        <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:7px;background:${isMCQ?'var(--bh)':isTF?'var(--gh)':'var(--oh)'};color:${isMCQ?'var(--blue)':isTF?'var(--green)':'var(--orange)'};">${isMCQ?'MCQ':isTF?'T/F':'Short Answer'}</span>
+        ${needsG?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(240,125,0,.12);color:var(--orange);">⚠ Needs Grading</span>`:''}
+        ${qSc===q.marks?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(22,163,74,.1);color:var(--green);">✓ Full marks</span>`:''}
+        <div style="margin-left:auto;font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${qSc===null?'var(--text3)':qSc===q.marks?'var(--green)':'var(--orange)'};">${qSc!==null?qSc+'/'+q.marks:'—/'+q.marks}</div>
+      </div>
+      <div style="padding:14px 16px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">${q.q}</div>
+        ${isMCQ?`<div style="display:flex;flex-direction:column;gap:6px;">${q.opts.map((o,oi)=>{const isC=oi===q.correct;const isSel=ans?.sel===oi;
+          return `<div style="display:flex;align-items:center;gap:9px;padding:9px 13px;border:1.5px solid ${isC?'rgba(22,163,74,.3)':isSel&&!isC?'rgba(220,38,38,.3)':'var(--border)'};border-radius:8px;background:${isC?'rgba(22,163,74,.05)':isSel&&!isC?'rgba(220,38,38,.04)':'transparent'};">
+            <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${isC?'var(--green)':isSel&&!isC?'var(--red)':'var(--border)'};background:${isC||isSel?isC?'var(--green)':'var(--red)':'transparent'};flex-shrink:0;display:flex;align-items:center;justify-content:center;">${isC||isSel?'<div style="width:7px;height:7px;border-radius:50%;background:#fff;"></div>':''}</div>
+            <span style="flex:1;font-size:12px;">${o}</span>
+            ${isC&&isSel?`<span style="font-size:10px;font-weight:700;color:var(--green);">✓ Correct</span>`:isC?`<span style="font-size:10px;font-weight:700;color:var(--green);">✓ Answer</span>`:isSel?`<span style="font-size:10px;font-weight:700;color:var(--red);">✗ Selected</span>`:''}
+          </div>`;}).join('')}</div>`:''}
+        ${isTF?`<div style="display:flex;gap:10px;">${q.opts.map((o,oi)=>{const isC=oi===q.correct;const isSel=ans?.sel===oi;
+          return `<div style="flex:1;padding:11px;border:2px solid ${isC?'rgba(22,163,74,.3)':isSel&&!isC?'rgba(220,38,38,.3)':'var(--border)'};border-radius:9px;text-align:center;font-size:13px;font-weight:700;background:${isC?'rgba(22,163,74,.05)':isSel&&!isC?'rgba(220,38,38,.04)':'transparent'};color:${isC?'var(--green)':isSel&&!isC?'var(--red)':'var(--text2)'};">${o} ${isC&&isSel?'✓':isC?'(correct)':isSel?'✗':''}  </div>`;}).join('')}</div>`:''}
+        ${isShort?`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:5px;">Trainee's Answer</div>
+            <div style="font-size:13px;line-height:1.5;">${ans?.text||'<em style="color:var(--text3)">No answer</em>'}</div>
+          </div>
+          <div style="background:rgba(22,163,74,.05);border:1px solid rgba(22,163,74,.18);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:10px;font-weight:700;color:var(--green);margin-bottom:5px;">Model Answer</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5;">${q.modelAns}</div>
+          </div>
+        </div>
+        <div style="background:${needsG?'rgba(240,125,0,.05)':'rgba(22,163,74,.04)'};border:1.5px solid ${needsG?'rgba(240,125,0,.25)':'rgba(22,163,74,.2)'};border-radius:9px;padding:13px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="font-size:12px;font-weight:700;color:${needsG?'var(--orange)':'var(--green)'};">${needsG?'⚠ Assign Grade':'✓ Graded'}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text2);">Score:</span>
+            <input type="number" min="0" max="${q.marks}" value="${manSc??''}" placeholder="—" id="rer-${qi}"
+              style="width:62px;text-align:center;border:1.5px solid ${needsG?'var(--orange)':'var(--green)'};border-radius:7px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:800;outline:none;background:var(--surface);"
+              oninput="this.style.borderColor=+this.value>=0&&+this.value<=${q.marks}?'var(--green)':'var(--red)'">
+            <span style="font-size:12px;color:var(--text2);">/ ${q.marks}</span>
+          </div>
+          <div style="display:flex;gap:5px;">${Array.from({length:q.marks+1},(_,i)=>`<button onclick="document.getElementById('rer-${qi}').value=${i};document.getElementById('rer-${qi}').style.borderColor='var(--green)'" style="padding:6px 12px;border:1px solid var(--border);background:var(--surface2);border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">${i}</button>`).join('')}</div>
+          <button onclick="saveReviewGrade(${qi},${q.id},${q.marks})" style="margin-left:auto;padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Save ✓</button>
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('')}
+</div>`}
+
+<!-- Confirm button -->
+<div style="margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px 20px;display:flex;align-items:center;gap:14px;">
+  <div style="flex:1;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:3px;">${conf?'✓ Review Confirmed':'Confirm Review'}</div>
+    <div style="font-size:12px;color:var(--text2);">${conf?'This trainee\'s exam has been reviewed and confirmed.':'Once confirmed, the final score is locked and the trainee receives their result.'}</div>
+  </div>
+  ${na?`<div style="font-size:12px;color:var(--orange);font-weight:600;">⚠ Complete grading first</div>`:`
+  <button onclick="confirmReview()" style="padding:10px 24px;background:${conf?'var(--surface2)':'var(--accent)'};color:${conf?'var(--text2)':'#fff'};border:${conf?'1px solid var(--border)':'none'};border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">${conf?'✓ Confirmed':'Confirm & Finalize ✓'}</button>`}
+</div>`;
+}
+
+function confirmReview(){
+  const s=IG(CSID);
+  const eligible=s.parts.filter(p=>isEligible(p,s));
+  const p=eligible[CURR_REVIEW_PI];
+  if(!p)return;
+  const isPaper=s.exam.kind==='paper';
+
+  if(isPaper){
+    const inp=document.getElementById('paper-score-inp');
+    if(!inp||inp.value===''){toast('⚠️ Enter the score first','r');return;}
+    const totM=s.exam.totalMarks||20;
+    const val=+inp.value;
+    if(isNaN(val)||val<0||val>totM){
+      inp.style.borderColor='var(--red)';
+      toast('⚠️ Score must be between 0 and '+totM,'r');
+      return;
+    }
+    p.paperScore=val;
+  }
+
+  p.confirmed=true;
+  toast('✓ '+p.n+' confirmed!','g');
+
+  // Check if all eligible are confirmed → set session status to review (then user can finalize)
+  const allConfirmed=eligible.every(pt=>pt.confirmed);
+  if(allConfirmed){
+    setStatus(CSID,'confirmed');
+    toast('All trainees confirmed! Session finalized ✅','g');
+    showPage('instr-session-detail');
+    return;
+  }
+  // Set to review once at least one submitted (if not already)
+  if(s.status==='ended') setStatus(CSID,'review');
+
+  // auto-advance to next unconfirmed
+  const next=eligible.findIndex((pt,i)=>i>CURR_REVIEW_PI&&!pt.confirmed);
+  if(next!==-1){CURR_REVIEW_PI=next;showPage('instr-exam-review');}
+  else{showPage('instr-exam-overview');}
+}
+
+function savePaperAttachment(input, pi){
+  const f=input.files[0]; if(!f) return;
+  const s=IG(CSID);
+  const eligible=s.parts.filter(p=>isEligible(p,s)||(s.exam.kind==='paper'&&Object.values(p.dayAtt||{}).some(Boolean)));
+  const p=eligible[pi]; if(!p) return;
+  p.attachmentName=f.name;
+  const nameEl=document.getElementById('paper-att-name-'+pi);
+  if(nameEl) nameEl.textContent='✓ '+f.name;
+  toast('Answer sheet attached: '+f.name,'g');
+}
+
+function saveReviewGrade(qi, qid, maxMark){
+  const s=IG(CSID);
+  const eligible=s.parts.filter(p=>isEligible(p,s));
+  const p=eligible[CURR_REVIEW_PI];
+  if(!p)return;
+  const inp=document.getElementById('rer-'+qi);
+  if(!inp||inp.value==='')return;
+  const val=Math.min(+inp.value,maxMark);
+  if(!p.answers)p.answers=[];
+  let ans=p.answers.find(a=>a.qid===qid);
+  if(!ans){p.answers.push({qid,text:'',autoScore:null,manualScore:val});}
+  else{ans.manualScore=val;}
+  toast('Grade saved for '+p.n,'g');
+  showPage('instr-exam-review');
+}
+
+
+
+function instrProfile(){return `
+<div class="ph"><div><div class="pt">My Profile</div></div><button onclick="toast('Edit mode','b')" style="padding:7px 16px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;">✏️ Edit</button></div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;display:flex;align-items:center;gap:18px;">
+  <div style="width:62px;height:62px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;flex-shrink:0;">MZ</div>
+  <div style="flex:1;"><div style="font-size:18px;font-weight:800;margin-bottom:3px;">Dr. Mohammed Al-Zahrani</div>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:7px;">🔥 Fire Safety Specialist · Internal · HSE Dept</div>
+  <div style="font-size:11px;color:var(--text2);">📧 m.zahrani@sp.sa &nbsp;·&nbsp; 📞 +966 50 111 2233</div></div>
+  <div style="display:flex;gap:18px;">${[['14','Sessions','var(--accent)'],['187','Trained','var(--blue)'],['4.8 ⭐','Rating','var(--orange)'],['2/3','Valid Quals','var(--green)']].map(([v,l,c])=>`<div style="text-align:center;padding:0 14px;border-left:1px solid var(--border);"><div style="font-size:18px;font-weight:800;color:${c};">${v}</div><div style="font-size:9px;color:var(--text3);text-transform:uppercase;">${l}</div></div>`).join('')}</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;"><div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">📚 Qualified Courses</div>
+    <div style="padding:12px;">${[['Fire Safety & Emergency Response','Safety'],['First Aid & CPR','Medical'],['Risk Assessment & Hazard ID','Risk']].map(([t,cat])=>`<div style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:var(--rh);color:var(--red);">${cat}</span><span style="font-size:12px;font-weight:600;">${t}</span></div>`).join('')}</div>
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;"><div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;">🏅 Qualifications</div>
+    ${[{t:'Certified Fire Safety Inspector',by:'NFPA',exp:'2025-01',ok:false},{t:'Emergency Response Coordinator',by:'Civil Defense KSA',exp:'2026-03',ok:true},{t:'First Aid & CPR Instructor',by:'Saudi Red Crescent',exp:'2027-06',ok:true}].map(q=>`<div style="display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid var(--border);">
+      <div style="width:32px;height:32px;border-radius:8px;background:${q.ok?'rgba(22,163,74,.1)':'var(--rh)'};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">${q.ok?'🏅':'⚠️'}</div>
+      <div style="flex:1;"><div style="font-size:12px;font-weight:700;">${q.t}</div><div style="font-size:10px;color:var(--text2);">${q.by} · ${q.ok?'Expires':'Expired'} ${fd(q.exp)}</div></div>
+      <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;background:${q.ok?'rgba(22,163,74,.1)':'var(--rh)'};color:${q.ok?'var(--green)':'var(--red)'};">${q.ok?'Valid':'Expired'}</span>
+    </div>`).join('')}
+  </div>
+</div>`;}
+
 
 // ══════════════════════════════════════════
 //  EMPLOYEE PAGES
@@ -5141,22 +6179,8 @@ function initJTList() {
   updateJTSummary();
 }
 
-function setJTLevel(title, level, btn) {
-  // toggle off if already active
-  if (jtLevels[title] === level) {
-    jtLevels[title] = null;
-  } else {
-    jtLevels[title] = level;
-  }
-  // update button states in that row
-  const row = btn.closest('.jt-row');
-  row.querySelectorAll('.level-btn').forEach(b => {
-    b.className = 'level-btn';
-    if (jtLevels[title] && b.dataset.level === jtLevels[title]) {
-      b.classList.add('active-' + jtLevels[title]);
-    }
-  });
-  updateJTSummary();
+function setJTLevelOld(title, level, btn) {
+  // legacy — kept for compatibility
 }
 
 function updateJTSummary() {
