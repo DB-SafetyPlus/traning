@@ -1740,17 +1740,8 @@ const SIDEBARS = {
     ]},
   ],
   employee: [
-    { section:'My Training', items:[
-      { id:'emp-dash', icon:'📊', label:'My Dashboard' },
-      { id:'emp-courses', icon:'📚', label:'My Courses', badge:'1', badgeCls:'' },
-      { id:'emp-sessions', icon:'🗓', label:'Available Sessions' },
-      { id:'emp-invites', icon:'📨', label:'My Invitations', badge:'1', badgeCls:'' },
-      { id:'emp-requests', icon:'📝', label:'My Requests', badge:'2', badgeCls:'' },
-      { id:'emp-exam', icon:'📝', label:'My Exams', badge:'1', badgeCls:'g' },
-    ]},
-    { section:'My Records', items:[
-      { id:'emp-record', icon:'📋', label:'My Training Record' },
-      { id:'emp-certs', icon:'🏆', label:'My Certificates' },
+    { section:'', items:[
+      { id:'emp-dash', icon:'⊞', label:'Control Panel' },
     ]},
   ],
 };
@@ -1812,9 +1803,22 @@ function initApp() {
 // ══════════════════════════════════════════
 function buildSidebar() {
   const sb = document.getElementById('sidebar');
+  const mc = document.getElementById('main-content');
+  // Employee: hide sidebar, full-width layout
+  if(currentRole === 'employee') {
+    sb.style.display = 'none';
+    mc.style.marginLeft = '0';
+    mc.style.padding = '0';
+    mc.style.width = '100%';
+  } else {
+    sb.style.display = '';
+    mc.style.marginLeft = '';
+    mc.style.padding = '';
+    mc.style.width = '';
+  }
   let html = '';
   SIDEBARS[currentRole].forEach(sec => {
-    html += `<div class="sb-section"><div class="sb-label">${sec.section}</div>`;
+    html += `<div class="sb-section">${sec.section?`<div class="sb-label">${sec.section}</div>`:''}`;
     sec.items.forEach(item => {
       const badge = item.badge ? `<span class="nav-badge ${item.badgeCls||''}">${item.badge}</span>` : '';
       html += `<div class="nav-item" id="nav-${item.id}" onclick="showPage('${item.id}')"><span class="ni">${item.icon}</span>${item.label}${badge}</div>`;
@@ -1839,7 +1843,13 @@ function showPage(id) {
   const mc = document.getElementById('main-content');
   mc.innerHTML = '';
   const div = document.createElement('div');
-  div.className = 'page active';
+  // Employee Control Panel: full bleed, no padding
+  if(currentRole === 'employee' && id === 'emp-dash') {
+    div.className = 'page active';
+    div.style.padding = '0';
+  } else {
+    div.className = 'page active';
+  }
   div.id = 'page-' + id;
   div.innerHTML = getPageHTML(id);
   mc.appendChild(div);
@@ -4335,7 +4345,7 @@ let CURR_REVIEW_PI = 0;
 // ── EXAM OVERVIEW PAGE ────────────────────────────────────────────
 function instrExamOverview(){
   const s   = IG(CSID);
-  const qs  = s.exam.qs || [];
+  const qs  = s.exam.qs;
   const ATT = s.parts;
   const eligible = ATT.filter(p=>isEligible(p,s));
   const isPaper  = s.exam.kind==='paper';
@@ -4408,7 +4418,7 @@ ${pending.length>0?`<div style="background:rgba(240,125,0,.07);border:1px solid 
 
 function instrExamReview(){
   const s   = IG(CSID);
-  const qs  = s.exam.qs || [];
+  const qs  = s.exam.qs;
   const ATT = s.parts;
   const eligible = ATT.filter(p=>isEligible(p,s));
   const isPaper  = s.exam.kind==='paper';
@@ -4596,15 +4606,8 @@ function confirmReview(){
 
   if(isPaper){
     const inp=document.getElementById('paper-score-inp');
-    if(!inp||inp.value===''){toast('⚠️ Enter the score first','r');return;}
-    const totM=s.exam.totalMarks||20;
-    const val=+inp.value;
-    if(isNaN(val)||val<0||val>totM){
-      inp.style.borderColor='var(--red)';
-      toast('⚠️ Score must be between 0 and '+totM,'r');
-      return;
-    }
-    p.paperScore=val;
+    if(!inp||inp.value===''){toast('Enter the score first','r');return;}
+    p.paperScore=+inp.value;
   }
 
   p.confirmed=true;
@@ -4679,61 +4682,795 @@ function instrProfile(){return `
 </div>`;}
 
 
-// ══════════════════════════════════════════
-//  EMPLOYEE PAGES
-// ══════════════════════════════════════════
-function empDash() { return `
-<div class="ph"><div class="pt">My Dashboard <small>Nora Al-Qahtani · Safety Officer</small></div></div>
-<div class="profile-hero">
-  <div class="ph-av" style="background:linear-gradient(135deg,var(--purple),#6a3dcc);color:#fff">NQ</div>
-  <div style="flex:1">
-    <div class="ph-name">Nora Al-Qahtani</div>
-    <div class="ph-role">👷 Safety Officer · HSE Department</div>
-    <div class="ph-stats">
-      <div class="ph-stat"><div class="v">5</div><div class="l">Completed</div></div>
-      <div class="ph-stat"><div class="v">1</div><div class="l">In Progress</div></div>
-      <div class="ph-stat"><div class="v">3</div><div class="l">Pending</div></div>
-      <div class="ph-stat"><div class="v">100%</div><div class="l">Compliance</div></div>
+
+// ══ EMPLOYEE STATE ════════════════════
+let EMP_COURSE_TAB = 'TR_all';
+let EMP_EXPANDED   = null;
+let EMP_LIVE_TAB   = 'materials';
+let EMP_QUIZ_IDX   = 0;
+let EMP_QUIZ_ANSWERS  = {};
+let EMP_QUIZ_DONE     = false;
+let EMP_EXAM_ANSWERS  = {};
+let EMP_EXAM_DONE     = {};
+let EMP_SHOW_PROFILE  = false;
+let EMP_LEARN_MODE    = {};
+
+const EMP_D = {
+  name:'Nora Al-Qahtani', ini:'NQ', role:'Safety Officer', dept:'HSE',
+  courses:{
+    C01:{
+      title:'Fire Safety & Emergency Response', cat:'Safety', type:'mandatory',
+      status:'completed', score:88, pm:70, exp:'2027-05-01', prog:100,
+      desc:'Fire prevention, PASS technique, evacuation and emergency response.',
+      sessions:[{
+        id:'SS01', sessionStatus:'completed', learningMode:'session',
+        days:[
+          {label:'Day 1', date:'2026-05-24', ts:'09:00', te:'13:00', status:'done'},
+          {label:'Day 2', date:'2026-05-25', ts:'09:00', te:'13:00', status:'done'},
+        ],
+        type:'Hybrid', loc:'Training Center A, Room 101', instructor:'Dr. Mohammed Al-Zahrani',
+        seats:20, enrolled:18,
+        mats:[
+          {ic:'📕',n:'Module 1 — Introduction',sz:'3.2 MB',type:'pdf',vis:'before'},
+          {ic:'📊',n:'Session Slides',sz:'5.8 MB',type:'pptx',vis:'during'},
+          {ic:'🎥',n:'Evacuation Drill Video',sz:'120 MB',type:'video',vis:'during'},
+          {ic:'📕',n:'Post-Session Reference Sheet',sz:'0.4 MB',type:'pdf',vis:'after'},
+        ],
+        quizzes:[],
+        examSent:true, examScore:88, quizScore:82, attendanceDays:2,
+      }]
+    },
+    C02:{
+      title:'Chemical Hazard Awareness (GHS)', cat:'Hazmat', type:'mandatory',
+      status:'completed', score:92, pm:70, exp:'2026-11-15', prog:100,
+      desc:'GHS hazard classification, labeling and safety data sheets.',
+      sessions:[{id:'SS02',sessionStatus:'completed',learningMode:'session',days:[{label:'Day 1',date:'2026-05-20',ts:'08:00',te:'12:00',status:'done'}],type:'In-Person',loc:'Training Center B',instructor:'Dr. Khalid Al-Anazi',seats:25,enrolled:20,mats:[],quizzes:[],examSent:true,examScore:92,quizScore:90,attendanceDays:1}]
+    },
+    C03:{
+      title:'First Aid & CPR Certification', cat:'Medical', type:'mandatory',
+      status:'live', score:null, pm:70, exp:null, prog:40,
+      desc:'Basic life support, CPR, AED use and first aid for common workplace injuries.',
+      sessions:[{
+        id:'SS03', sessionStatus:'live', learningMode:'both',
+        // Day 1 done, Day 2 is today (live)
+        days:[
+          {label:'Day 1', date:'2026-06-24', ts:'09:00', te:'13:00', status:'done'},
+          {label:'Day 2', date:'2026-06-25', ts:'09:00', te:'13:00', status:'live'},
+        ],
+        type:'Online', loc:'MS Teams', instructor:'Eng. Sara Al-Otaibi',
+        streamUrl:'https://teams.microsoft.com/l/meetup/live-cpr-2026',
+        seats:20, enrolled:8,
+        mats:[
+          {ic:'📕',n:'First Aid Manual',sz:'4.1 MB',type:'pdf',vis:'before'},
+          {ic:'📊',n:'CPR Technique Slides',sz:'3.2 MB',type:'pptx',vis:'during'},
+          {ic:'🎥',n:'CPR Demo Video',sz:'85 MB',type:'video',vis:'during'},
+          {ic:'📋',n:'Practical Checklist',sz:'0.3 MB',type:'pdf',vis:'during'},
+        ],
+        quizzes:[{
+          id:'Q1', title:'CPR Basics Quiz', marks:4, dayIndex:1,
+          qs:[
+            {id:1,type:'mcq',q:'Correct compression rate for adult CPR?',opts:['60–80/min','100–120/min','140–160/min','80–100/min'],correct:1,marks:2},
+            {id:2,type:'tf', q:'Tilt head back to open the airway.',opts:['True','False'],correct:0,marks:1},
+            {id:3,type:'mcq',q:'Compressions per cycle (30:2 ratio)?',opts:['10','20','30','40'],correct:2,marks:1},
+          ]
+        }],
+        // Exam appears ONLY after instructor ends session
+        examSent:false,
+        finalExam:{
+          name:'First Aid & CPR Assessment', pm:70, totalMarks:5,
+          qs:[
+            {id:1,type:'mcq',q:'Correct CPR compression rate?',opts:['60–80/min','100–120/min','140–160/min','80–100/min'],correct:1,marks:2},
+            {id:2,type:'short',q:'Describe the recovery position and when to use it.',marks:2,modelAns:'Place on side, upper knee forward, head tilted back. Used when unconscious but breathing.'},
+            {id:3,type:'tf',q:'Remove helmet from unconscious motorcyclist before first aid.',opts:['True','False'],correct:1,marks:1},
+          ]
+        },
+        attendanceDays:1,
+      }]
+    },
+    C04:{
+      title:'Emergency Evacuation Procedures', cat:'Safety', type:'mandatory',
+      status:'overdue', score:null, pm:70, exp:null, prog:0,
+      desc:'Evacuation drills, muster procedures and roles during emergencies.',
+      sessions:[]
+    },
+    C05:{title:'Risk Assessment Fundamentals',cat:'Risk',type:'recommended',status:'available',score:null,pm:70,exp:null,prog:0,desc:'Risk matrices, hazard identification and control measures.',
+      sessions:[
+        {id:'SS05a',sessionStatus:'upcoming',days:[{label:'Day 1',date:'2026-07-05',ts:'08:00',te:'12:00',status:'upcoming'}],type:'Online',loc:'MS Teams',instructor:'Dr. Mohammed Al-Zahrani',seats:20,enrolled:5,learningMode:'both',mats:[{ic:'📕',n:'Risk Assessment Guide',sz:'2.8 MB',type:'pdf',vis:'before'},{ic:'🎥',n:'Risk Assessment Intro Video',sz:'45 MB',type:'video',vis:'before'},{ic:'📊',n:'Risk Matrix Templates',sz:'2.1 MB',type:'pptx',vis:'before'}],quizzes:[{id:'Q5a',title:'Pre-Session Quiz',marks:3,dayIndex:0,qs:[{id:1,type:'mcq',q:'What is the purpose of a risk matrix?',opts:['To list all employees','To evaluate likelihood and severity of hazards','To track attendance','To schedule sessions'],correct:1,marks:2},{id:2,type:'tf',q:'Risk assessment must be reviewed annually.',opts:['True','False'],correct:0,marks:1}]}],examSent:false,finalExam:{name:'Risk Assessment Test',pm:70,totalMarks:4,qs:[{id:1,type:'mcq',q:'Which control measure is most effective?',opts:['PPE','Administrative controls','Engineering controls','Elimination'],correct:3,marks:2},{id:2,type:'short',q:'Define a hazard and give one example.',marks:2,modelAns:'A hazard is anything with potential to cause harm. Example: wet floor, chemical exposure.'}]}},
+        {id:'SS05b',sessionStatus:'upcoming',learningMode:'session',days:[{label:'Day 1',date:'2026-07-20',ts:'09:00',te:'13:00',status:'upcoming'}],type:'In-Person',loc:'Training Center A',instructor:'Eng. Sara Al-Otaibi',seats:15,enrolled:3,mats:[{ic:'📕',n:'Risk Assessment Guide',sz:'2.8 MB',type:'pdf',vis:'before'}],quizzes:[],examSent:false,finalExam:null},
+      ]},
+    C06:{title:'Working at Heights Safety',cat:'Safety',type:'recommended',status:'available',score:null,pm:70,exp:null,prog:0,desc:'Fall protection, ladder safety, scaffolding and harness use.',
+      sessions:[{id:'SS06',sessionStatus:'upcoming',learningMode:'session',days:[{label:'Day 1',date:'2026-07-15',ts:'08:00',te:'14:00',status:'upcoming'}],type:'In-Person',loc:'Outdoor Training Area',instructor:'Dr. Khalid Al-Anazi',seats:10,enrolled:7,mats:[],quizzes:[],examSent:false,finalExam:null}]},
+    C07:{title:'Incident Investigation Basics',cat:'HSE',type:'optional',status:'available',score:null,pm:70,exp:null,prog:0,desc:'Root cause analysis: 5 Whys, Fishbone and corrective actions.',
+      sessions:[{id:'SS07',sessionStatus:'upcoming',learningMode:'elearning',days:[{label:'Day 1',date:'2026-07-20',ts:'09:00',te:'13:00',status:'upcoming'}],type:'Online',loc:'Zoom',instructor:'Eng. Sara Al-Otaibi',seats:25,enrolled:3,mats:[],quizzes:[],examSent:false,finalExam:null}]},
+  },
+  history:[
+    {cid:'C01',title:'Fire Safety & Emergency Response',date:'24–25 May 2026',type:'Admin',present:'2/2 days',avg:'88%',pass:'70%',rating:5},
+    {cid:'C02',title:'Chemical Hazard Awareness (GHS)',date:'20 May 2026',type:'Admin',present:'1/1 days',avg:'92%',pass:'70%',rating:4.8},
+  ],
+  invites:[{title:'Emergency Response Refresher',date:'2026-07-10',instructor:'Dr. Mohammed Al-Zahrani',mandatory:true}],
+  certs:[{cid:'C01',title:'Fire Safety & Emergency Response',exp:'2027-05-01'},{cid:'C02',title:'Chemical Hazard Awareness (GHS)',exp:'2026-11-15'}],
+};
+;
+
+function empDash(){
+  const D=EMP_D;
+  const mand = Object.entries(D.courses).filter(([,c])=>c.type==='mandatory');
+  const done = mand.filter(([,c])=>c.status==='completed').length;
+  const total= mand.length;
+  const over = mand.filter(([,c])=>c.status==='overdue').length;
+  const liveEntry = Object.entries(D.courses).find(([,c])=>c.status==='live');
+
+  const filt = Object.entries(D.courses).filter(([,c])=>{
+    if(EMP_COURSE_TAB==='all') return true;
+    if(EMP_COURSE_TAB==='live') return c.status==='live';
+    return c.type===EMP_COURSE_TAB;
+  });
+
+  // ── All upcoming sessions across all courses (for Upcoming tab) ───────
+  const upcomingSessions = Object.entries(D.courses).flatMap(([cid,c])=>
+    (c.sessions||[]).filter(s=>s.sessionStatus==='upcoming').map(s=>({...s,cid,courseTitle:c.title}))
+  ).sort((a,b)=>new Date(a.days[0].date)-new Date(b.days[0].date));
+
+  // ═══════════════════════════════════════════════════════
+  // LIVE FULL-SCREEN VIEW
+  // ═══════════════════════════════════════════════════════
+  if(EMP_EXPANDED && D.courses[EMP_EXPANDED]?.status==='live' && !EMP_SHOW_PROFILE){
+    const cid=EMP_EXPANDED, c=D.courses[cid];
+    const ses=c.sessions.find(s=>s.sessionStatus==='live');
+    if(!ses) { EMP_EXPANDED=null; return empDash(); }
+
+    const quizzes=ses.quizzes||[];
+    const fExam  =ses.finalExam;
+    const examReady = ses.examSent; // only show exam after instructor ends session
+
+    // ── SIDEBAR: MATERIALS TAB (day by day) ───────────────
+    const matsTab=`<div style="display:flex;flex-direction:column;">
+      ${ses.days.map((day,di)=>{
+        const isDone   = day.status==='done';
+        const isLive   = day.status==='live';
+        const isLocked = !isDone && !isLive;
+        const dayQuiz  = quizzes.find(q=>q.dayIndex===di);
+        return `
+        <div style="border-bottom:1px solid var(--border);">
+          <!-- Day header -->
+          <div style="padding:11px 16px;display:flex;align-items:center;gap:10px;background:${isLive?'rgba(22,163,74,.04)':isDone?'transparent':'var(--surface2)'};">
+            <span style="font-size:18px;flex-shrink:0;">${isDone?'✅':isLive?'🟢':'🔒'}</span>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;">Day ${di+1} — ${fd(day.date)}</div>
+              <div style="font-size:10px;color:var(--text2);">⏰ ${day.ts}–${day.te}</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:6px;background:${isLive?'rgba(22,163,74,.12)':isDone?'rgba(22,163,74,.08)':'var(--surface3)'};color:${isLive?'var(--green)':isDone?'var(--green)':'var(--text3)'};">${isLive?'Live Now':isDone?'Done':'Upcoming'}</span>
+          </div>
+          ${isDone?`
+          <!-- Completed day summary -->
+          <div style="padding:9px 16px;background:rgba(22,163,74,.02);border-top:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:8px;">
+              <span style="color:var(--green);">✓ Attendance recorded</span>
+              ${dayQuiz?`<span style="margin-left:auto;font-size:10px;padding:2px 8px;border-radius:5px;background:${EMP_QUIZ_DONE?'rgba(22,163,74,.1)':'rgba(217,119,6,.1)'};color:${EMP_QUIZ_DONE?'var(--green)':'var(--orange)'};">${EMP_QUIZ_DONE?'Quiz ✓':'Quiz pending'}</span>`:''}
+            </div>
+          </div>`:''}
+          ${isLive?`
+          <!-- Live day content -->
+          <div style="padding:10px 14px;display:flex;flex-direction:column;gap:7px;background:rgba(22,163,74,.02);border-top:1px solid var(--border);">
+            ${ses.mats.filter(m=>m.vis==='during').map(m=>`
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+              <span style="font-size:16px;">${m.ic}</span>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:700;">${m.n}</div><div style="font-size:9px;color:var(--text3);">${m.type.toUpperCase()} · ${m.sz}</div></div>
+              ${m.type==='video'?`<button onclick="toast('Opening video…','b')" style="padding:5px 12px;background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.2);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">▶ Watch</button>`:
+                m.type==='pptx'?`<button onclick="toast('Opening slides…','b')" style="padding:5px 12px;background:rgba(29,78,216,.08);color:var(--blue);border:1px solid rgba(29,78,216,.2);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">📊 Open</button>`:
+                `<button onclick="toast('Downloading…','b')" style="padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:10px;">📥</button>`}
+            </div>`).join('')}
+            ${dayQuiz&&!EMP_QUIZ_DONE?`
+            <div style="padding:9px 13px;background:rgba(107,45,94,.05);border:1.5px solid rgba(107,45,94,.15);border-radius:8px;display:flex;align-items:center;gap:9px;">
+              <span>📝</span>
+              <div style="flex:1;"><div style="font-size:11px;font-weight:700;">${dayQuiz.title}</div><div style="font-size:10px;color:var(--text2);">${dayQuiz.qs.length} questions · ${dayQuiz.marks} marks</div></div>
+              <button onclick="EMP_LIVE_TAB='quiz';EMP_QUIZ_IDX=0;EMP_QUIZ_ANSWERS={};EMP_QUIZ_DONE=false;showPage('emp-dash')" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">Take Quiz →</button>
+            </div>`:''}
+            ${dayQuiz&&EMP_QUIZ_DONE?`<div style="font-size:11px;color:var(--green);padding:6px 0;font-weight:600;">✓ Quiz completed</div>`:''}
+          </div>`:''}
+          ${isLocked?`<div style="padding:8px 16px;font-size:11px;color:var(--text3);background:var(--surface2);border-top:1px solid var(--border);">🔒 This day hasn't started yet</div>`:''}
+        </div>`;
+      }).join('')}
+      <!-- Final Exam — only after instructor sends it -->
+      <div style="padding:14px 16px;">
+        ${examReady&&fExam?`
+        <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:linear-gradient(120deg,rgba(107,45,94,.07),transparent);border:1.5px solid rgba(107,45,94,.2);border-radius:10px;">
+          <div style="width:38px;height:38px;border-radius:9px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏆</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:800;">${fExam.name}</div><div style="font-size:11px;color:var(--text2);">${fExam.qs.length} questions · ${fExam.totalMarks} marks · Pass: ${fExam.pm}%</div></div>
+          ${EMP_EXAM_DONE[cid]?`<span style="font-size:11px;font-weight:700;color:var(--green);">✓ Submitted</span>`:
+          `<button onclick="EMP_LIVE_TAB='exam';EMP_EXAM_ANSWERS={};showPage('emp-dash')" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">Start Exam →</button>`}
+        </div>`:
+        `<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;display:flex;align-items:center;gap:10px;opacity:.6;">
+          <span style="font-size:16px;">🔒</span>
+          <div style="font-size:11px;color:var(--text2);">Final exam will appear here once the instructor ends the session.</div>
+        </div>`}
+      </div>
+    </div>`;
+
+    // ── SIDEBAR: QUIZ TAB ──────────────────────────────────
+    const quizTab=(()=>{
+      const quiz=quizzes[EMP_QUIZ_IDX];
+      if(!quiz) return `<div style="padding:32px;text-align:center;color:var(--text3);">No quizzes for this session.</div>`;
+      const totM=quiz.qs.reduce((a,q)=>a+q.marks,0);
+      if(EMP_QUIZ_DONE){
+        const sc=quiz.qs.reduce((a,q)=>a+(EMP_QUIZ_ANSWERS[q.id]===q.correct?q.marks:0),0);
+        const pct=Math.round(sc/totM*100);
+        return `<div style="padding:32px;text-align:center;">
+          <div style="font-size:46px;margin-bottom:12px;">${pct>=70?'🎉':'📖'}</div>
+          <div style="font-size:18px;font-weight:800;margin-bottom:6px;">${pct>=70?'Great job!':'Keep studying!'}</div>
+          <div style="font-size:30px;font-weight:800;color:${pct>=70?'var(--green)':'var(--orange)'};margin:8px 0;">${sc}/${totM} <span style="font-size:16px;">(${pct}%)</span></div>
+          <div style="margin:16px auto;max-width:400px;display:flex;flex-direction:column;gap:6px;">
+            ${quiz.qs.map((q,i)=>{const ok=EMP_QUIZ_ANSWERS[q.id]===q.correct;return`<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;background:${ok?'rgba(22,163,74,.07)':'rgba(220,38,38,.06)'};border:1px solid ${ok?'rgba(22,163,74,.2)':'rgba(220,38,38,.2)'};border-radius:8px;text-align:left;"><span>${ok?'✅':'❌'}</span><span style="flex:1;font-size:11px;">Q${i+1}: ${q.q}</span><span style="font-size:10px;font-weight:700;color:${ok?'var(--green)':'var(--red)'};">${ok?'+'+q.marks:'0'}</span></div>`;}).join('')}
+          </div>
+          <button onclick="EMP_QUIZ_DONE=false;EMP_QUIZ_ANSWERS={};EMP_LIVE_TAB='materials';showPage('emp-dash')" style="padding:9px 22px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">← Back to Materials</button>
+        </div>`;
+      }
+      const ans=quiz.qs.filter(q=>EMP_QUIZ_ANSWERS[q.id]!=null).length;
+      return `<div style="padding:16px 14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div><div style="font-size:14px;font-weight:800;">${quiz.title}</div><div style="font-size:11px;color:var(--text2);">${quiz.qs.length} questions · ${totM} marks</div></div>
+          <div style="background:var(--accent-h);border:1px solid rgba(107,45,94,.2);border-radius:8px;padding:5px 12px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--accent);">${ans}/${quiz.qs.length}</div><div style="font-size:9px;color:var(--text3);">ANSWERED</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${quiz.qs.map((q,qi)=>`
+          <div style="border:1.5px solid ${EMP_QUIZ_ANSWERS[q.id]!=null?'var(--accent)':'var(--border)'};border-radius:10px;overflow:hidden;">
+            <div style="padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);">
+              <div style="width:20px;height:20px;border-radius:50%;background:${EMP_QUIZ_ANSWERS[q.id]!=null?'var(--green)':'var(--accent)'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">${EMP_QUIZ_ANSWERS[q.id]!=null?'✓':qi+1}</div>
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:${q.type==='mcq'?'var(--bh)':'var(--gh)'};color:${q.type==='mcq'?'var(--blue)':'var(--green)'};">${q.type==='mcq'?'MCQ':'T/F'}</span>
+              <span style="margin-left:auto;font-size:9px;color:var(--text3);">${q.marks}m</span>
+            </div>
+            <div style="padding:11px 13px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:9px;">${q.q}</div>
+              ${(q.opts||[]).map((o,oi)=>`
+              <label style="display:flex;align-items:center;gap:8px;padding:8px 11px;border:1.5px solid ${EMP_QUIZ_ANSWERS[q.id]===oi?'var(--accent)':'var(--border)'};border-radius:8px;margin-bottom:5px;cursor:pointer;background:${EMP_QUIZ_ANSWERS[q.id]===oi?'var(--accent-h)':'transparent'};transition:all .12s;">
+                <input type="radio" name="q${cid}${q.id}" ${EMP_QUIZ_ANSWERS[q.id]===oi?'checked':''} onchange="EMP_QUIZ_ANSWERS[${q.id}]=${oi};showPage('emp-dash')" style="accent-color:var(--accent);width:14px;height:14px;">
+                <span style="font-size:12px;">${o}</span>
+              </label>`).join('')}
+            </div>
+          </div>`).join('')}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:13px;padding-top:13px;border-top:1px solid var(--border);">
+          <button onclick="EMP_LIVE_TAB='materials';showPage('emp-dash')" style="padding:7px 16px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;">← Back</button>
+          <button onclick="EMP_QUIZ_DONE=true;showPage('emp-dash')" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Submit ✓</button>
+        </div>
+      </div>`;
+    })();
+
+    // ── SIDEBAR: EXAM TAB ──────────────────────────────────
+    const examTab=(()=>{
+      if(!examReady||!fExam) return `<div style="padding:32px;text-align:center;"><div style="font-size:44px;margin-bottom:12px;">🔒</div><div style="font-size:14px;font-weight:700;margin-bottom:8px;">Exam not available yet</div><div style="font-size:12px;color:var(--text2);">The exam will appear here once your instructor ends the session.</div></div>`;
+      if(EMP_EXAM_DONE[cid]) return `<div style="padding:48px;text-align:center;"><div style="font-size:52px;margin-bottom:14px;">✅</div><div style="font-size:18px;font-weight:800;margin-bottom:8px;">Exam Submitted!</div><div style="font-size:12px;color:var(--text2);max-width:300px;margin:0 auto;">Your instructor will review and confirm your score.</div></div>`;
+      const totM=fExam.qs.reduce((a,q)=>a+q.marks,0);
+      const ans=fExam.qs.filter(q=>EMP_EXAM_ANSWERS[q.id]!=null&&EMP_EXAM_ANSWERS[q.id]!=='').length;
+      return `<div style="padding:16px 14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div><div style="font-size:14px;font-weight:800;">${fExam.name}</div><div style="font-size:11px;color:var(--text2);">${fExam.qs.length} Qs · ${totM} marks · Pass ${fExam.pm}%</div></div>
+          <div style="background:var(--accent-h);border:1px solid rgba(107,45,94,.2);border-radius:8px;padding:5px 12px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--accent);">${ans}/${fExam.qs.length}</div><div style="font-size:9px;color:var(--text3);">ANSWERED</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${fExam.qs.map((q,qi)=>`
+          <div style="border:1.5px solid ${EMP_EXAM_ANSWERS[q.id]!=null&&EMP_EXAM_ANSWERS[q.id]!==''?'var(--accent)':'var(--border)'};border-radius:10px;overflow:hidden;">
+            <div style="padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);">
+              <div style="width:20px;height:20px;border-radius:50%;background:${EMP_EXAM_ANSWERS[q.id]!=null&&EMP_EXAM_ANSWERS[q.id]!==''?'var(--green)':'var(--accent)'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">${EMP_EXAM_ANSWERS[q.id]!=null&&EMP_EXAM_ANSWERS[q.id]!==''?'✓':qi+1}</div>
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:${q.type==='mcq'?'var(--bh)':q.type==='tf'?'var(--gh)':'var(--oh)'};color:${q.type==='mcq'?'var(--blue)':q.type==='tf'?'var(--green)':'var(--orange)'};">${q.type==='mcq'?'MCQ':q.type==='tf'?'T/F':'Short'}</span>
+              <span style="margin-left:auto;font-size:9px;color:var(--text3);">${q.marks}m</span>
+            </div>
+            <div style="padding:11px 13px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:9px;">${q.q}</div>
+              ${q.type==='short'?`<textarea oninput="EMP_EXAM_ANSWERS[${q.id}]=this.value" placeholder="Write your answer…" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:12px;outline:none;min-height:70px;resize:vertical;background:var(--surface);" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">${EMP_EXAM_ANSWERS[q.id]||''}</textarea>`:
+              (q.opts||[]).map((o,oi)=>`<label style="display:flex;align-items:center;gap:8px;padding:8px 11px;border:1.5px solid ${EMP_EXAM_ANSWERS[q.id]===oi?'var(--accent)':'var(--border)'};border-radius:8px;margin-bottom:5px;cursor:pointer;background:${EMP_EXAM_ANSWERS[q.id]===oi?'var(--accent-h)':'transparent'};transition:all .12s;"><input type="radio" name="fe${cid}${q.id}" ${EMP_EXAM_ANSWERS[q.id]===oi?'checked':''} onchange="EMP_EXAM_ANSWERS[${q.id}]=${oi};showPage('emp-dash')" style="accent-color:var(--accent);width:14px;height:14px;"><span style="font-size:12px;">${o}</span></label>`).join('')}
+            </div>
+          </div>`).join('')}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding-top:13px;border-top:1px solid var(--border);">
+          <button onclick="EMP_LIVE_TAB='materials';showPage('emp-dash')" style="padding:7px 16px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;">← Back</button>
+          <span style="font-size:10px;color:var(--text2);">${ans<fExam.qs.length?`⚠ ${fExam.qs.length-ans} left`:''}</span>
+          <button onclick="EMP_EXAM_DONE['${cid}']=true;showPage('emp-dash');toast('Exam submitted!','g')" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Submit ✓</button>
+        </div>
+      </div>`;
+    })();
+
+    return `
+<style>@keyframes ep-pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+<div style="position:fixed;inset:58px 0 0 0;background:var(--bg);z-index:200;display:flex;flex-direction:column;overflow:hidden;">
+  <!-- Top bar -->
+  <div style="background:#0a1a0a;padding:11px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;border-bottom:1px solid #1c3a1c;">
+    <button onclick="EMP_EXPANDED=null;showPage('emp-dash')" style="padding:6px 14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);border-radius:7px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.7);font-weight:600;">← Back</button>
+    <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;animation:ep-pulse 1.5s infinite;flex-shrink:0;"></div>
+    <div style="flex:1;"><div style="font-size:10px;color:#4ade80;font-weight:700;letter-spacing:.08em;">🟢 LIVE SESSION</div><div style="font-size:14px;font-weight:800;color:#fff;">${c.title}</div></div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);">👨‍🏫 ${ses.instructor} · 📍 ${ses.loc}</div>
+    ${ses.streamUrl?`<button onclick="toast('Joining live stream…','g')" style="padding:8px 18px;background:#16a34a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">🔗 Join Stream</button>`:''}
+  </div>
+  <!-- Body -->
+  <div style="flex:1;display:grid;grid-template-columns:1fr 360px;overflow:hidden;">
+    <!-- Left: video -->
+    <div style="background:#000;display:flex;flex-direction:column;">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+        ${ses.streamUrl?`
+        <div style="text-align:center;">
+          <div style="width:72px;height:72px;border-radius:50%;background:rgba(74,222,128,.12);border:2px solid #4ade80;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px;animation:ep-pulse 2s infinite;">🎥</div>
+          <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;">${ses.loc}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:18px;">Click below to join the live session</div>
+          <button onclick="toast('Opening live stream…','g')" style="padding:13px 32px;background:#16a34a;color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;">▶ Join Live Stream</button>
+        </div>`:`
+        <div style="text-align:center;">
+          <div style="font-size:48px;margin-bottom:12px;">📍</div>
+          <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:5px;">In-Person Session</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.45);">${ses.loc}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:5px;">👨‍🏫 ${ses.instructor}</div>
+        </div>`}
+      </div>
+      <!-- Participants bar -->
+      <div style="background:#111;padding:9px 18px;display:flex;align-items:center;gap:10px;border-top:1px solid #1a1a1a;flex-shrink:0;">
+        <span style="font-size:10px;color:rgba(255,255,255,.4);">👥 ${ses.enrolled} participants</span>
+        <div style="flex:1;display:flex;gap:4px;">
+          ${Array.from({length:Math.min(ses.enrolled,8)},(_,i)=>`<div style="width:24px;height:24px;border-radius:50%;background:${['#7c3aed','#1d4ed8','#dc2626','#16a34a','#0891b2','#d97706','#9333ea','#ea580c'][i]};border:2px solid #111;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:800;">${['NQ','YH','MK','FR','AM','SE','KA','LO'][i]}</div>`).join('')}
+          ${ses.enrolled>8?`<div style="width:24px;height:24px;border-radius:50%;background:#333;border:2px solid #111;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(255,255,255,.6);">+${ses.enrolled-8}</div>`:''}
+        </div>
+        <span style="font-size:10px;color:#4ade80;font-weight:700;animation:ep-pulse 2s infinite;">● Live</span>
+      </div>
     </div>
-  </div>
-  <div style="text-align:center;padding:0 20px;border-left:1px solid var(--border)">
-    <div style="font-size:28px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace">100%</div>
-    <div style="font-size:10px;color:var(--text3)">Compliance<br>Score</div>
-  </div>
-</div>
-<div style="background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.3);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:20px">
-  <span style="font-size:22px">📨</span>
-  <div style="flex:1"><div style="font-weight:700;font-size:13px">New Training Invitation</div><div style="font-size:11px;color:var(--text2)">Fire Safety & Emergency Response — May 24, 2026 · Mandatory</div></div>
-  <button class="btn btn-primary btn-sm" onclick="showPage('emp-invites')">View Invitation →</button>
-</div>
-<div class="dash-grid">
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="cc"><h3>My Mandatory Courses</h3><div class="bar-chart">
-      ${[['Fire Safety',100,'var(--accent)'],['PPE Awareness',100,'var(--accent)'],['Chemical Hazard',100,'var(--accent)'],['First Aid',80,'var(--blue)'],['Risk Assessment',0,'var(--surface3)']].map(([n,p,c])=>`<div class="bar-row"><span class="br-name">${n}</span><div class="br-track"><div class="br-fill" style="width:${p||4}%;background:${c}"></div></div><span class="br-pct">${p}%</span></div>`).join('')}
-    </div></div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="cc"><h3>Upcoming Sessions I'm In</h3><div class="upcoming-list">
-      <div class="up-item"><div class="up-date"><div class="up-day">24</div><div class="up-month">May</div></div><div class="up-info"><div class="up-title">Fire Safety & Emergency Response</div><div class="up-meta">09:00–17:00 · Training Center A</div></div><span class="badge o">Invited</span></div>
-    </div></div>
-    <div class="cc"><h3>My Certificates</h3>
-      ${[['Fire Safety','Aug 2027'],['PPE Awareness','Jun 2027'],['Chemical Hazard','Mar 2026']].map(([c,e])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px"><div><div style="font-weight:600">${c}</div><div style="color:var(--text3)">Expires ${e}</div></div><button class="btn btn-sm btn-outline" onclick="showToast('Downloading certificate...','b')">📥</button></div>`).join('')}
-    </div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="cc"><h3>Quick Actions</h3>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-primary btn-full" onclick="showPage('emp-invites')">📨 View Invitation</button>
-        <button class="btn btn-outline btn-full" onclick="showPage('emp-sessions')">🗓 Browse Sessions</button>
-        <button class="btn btn-outline btn-full" onclick="showPage('emp-record')">📋 My Training Record</button>
+    <!-- Right: sidebar -->
+    <div style="background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;border-bottom:2px solid var(--border);flex-shrink:0;">
+        ${[['materials','📁 Materials'],['quiz',`📝 Quiz${quizzes.length?` (${quizzes.length})`:''}`],['exam','🏆 Exam']].map(([t,lbl])=>`
+        <div onclick="EMP_LIVE_TAB='${t}';if('${t}'==='quiz'){EMP_QUIZ_DONE=false;EMP_QUIZ_ANSWERS={};}showPage('emp-dash')"
+          style="flex:1;padding:10px 4px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;border-bottom:2px solid ${EMP_LIVE_TAB===t?'var(--accent)':'transparent'};color:${EMP_LIVE_TAB===t?'var(--accent)':'var(--text2)'};margin-bottom:-2px;transition:all .13s;white-space:nowrap;">${lbl}${t==='exam'&&!examReady?' 🔒':''}</div>`).join('')}
+      </div>
+      <div style="flex:1;overflow-y:auto;">
+        ${EMP_LIVE_TAB==='materials'?matsTab:EMP_LIVE_TAB==='quiz'?quizTab:examTab}
       </div>
     </div>
   </div>
-</div>`; }
+</div>`;
+  }
 
-function empCourses() { return `
-<div class="ph"><div class="pt">My Courses <small>Your assigned training curriculum</small></div></div>
-<div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
+  // ═══════════════════════════════════════════════════════
+  // COURSE PROFILE PANEL (non-live)
+  // ═══════════════════════════════════════════════════════
+  const courseProfile=(cid,c)=>{
+    const sessions=c.sessions||[];
+    const isLive=c.status==='live';
+    // For live: show the live session as "in progress" with day breakdown
+    // For upcoming: show upcoming sessions with before mats
+    const relevantSes = isLive
+      ? sessions.filter(s=>s.sessionStatus==='live')
+      : sessions.filter(s=>s.sessionStatus==='upcoming');
+    const beforeMats=(relevantSes[0]?.mats||[]).filter(m=>m.vis==='before');
+    return `
+    <div style="background:var(--surface);border:2px solid var(--accent);border-radius:14px;overflow:hidden;margin-top:10px;animation:emp-in .2s ease;">
+      <div style="padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:800;margin-bottom:4px;">${c.title}</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.5;">${c.desc}</div>
+        </div>
+        <button onclick="EMP_EXPANDED=null;showPage('emp-dash')" style="width:26px;height:26px;border:1px solid var(--border);background:var(--surface2);border-radius:6px;cursor:pointer;font-size:12px;flex-shrink:0;">✕</button>
+      </div>
+      ${c.status==='completed'?`<div style="padding:12px 18px;background:rgba(22,163,74,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;"><span style="font-size:18px;">✅</span><div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--green);">Completed — Score ${c.score}%</div><div style="font-size:11px;color:var(--text2);">Certificate valid until ${fd(c.exp)}</div></div><button onclick="toast('Downloading…','g')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">🏅 Certificate</button></div>`:''}
+      ${c.status==='overdue'?`<div style="padding:12px 18px;background:rgba(220,38,38,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;"><span style="font-size:18px;">⚠️</span><div style="flex:1;font-size:12px;color:var(--red);font-weight:700;">Overdue — complete this course as soon as possible</div><button onclick="toast('Request submitted!','g')" style="padding:6px 14px;background:var(--red);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">Request Session</button></div>`:''}
+      ${sessions.length===0?`<div style="padding:16px 18px;font-size:12px;color:var(--text3);">No sessions scheduled yet. <button onclick="toast('Request submitted!','g')" style="margin-left:8px;padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">Request →</button></div>`:''}
+      ${sessions.map((s,si)=>{
+        const pct=Math.round(s.enrolled/s.seats*100);
+        const daysLeft=Math.ceil((new Date(s.days[0].date)-new Date())/86400000);
+        const lm = s.learningMode||'session'; // 'session' | 'elearning' | 'both'
+        const chosenMode = EMP_LEARN_MODE[s.id] || (lm==='both'?null:lm);
+        const hasBefore = (s.mats||[]).filter(m=>m.vis==='before');
+
+        // Learning mode selector — only for 'both' and not completed
+        const modePicker = (lm==='both' && s.sessionStatus!=='completed') ? `
+        <div style="margin-top:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">How would you like to take this course?</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div onclick="EMP_LEARN_MODE['${s.id}']='session';showPage('emp-dash')"
+              style="padding:12px;border:2px solid ${chosenMode==='session'?'var(--accent)':'var(--border)'};border-radius:9px;cursor:pointer;text-align:center;background:${chosenMode==='session'?'var(--accent-h)':'var(--surface)'};transition:all .14s;">
+              <div style="font-size:22px;margin-bottom:6px;">🗓</div>
+              <div style="font-size:12px;font-weight:700;color:${chosenMode==='session'?'var(--accent)':'var(--text2)'};">Attend Session</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px;">Live with instructor · ${s.days.length}-day${s.days.length>1?'s':''}</div>
+            </div>
+            <div onclick="EMP_LEARN_MODE['${s.id}']='elearning';showPage('emp-dash')"
+              style="padding:12px;border:2px solid ${chosenMode==='elearning'?'var(--blue)':'var(--border)'};border-radius:9px;cursor:pointer;text-align:center;background:${chosenMode==='elearning'?'rgba(29,78,216,.06)':'var(--surface)'};transition:all .14s;">
+              <div style="font-size:22px;margin-bottom:6px;">💻</div>
+              <div style="font-size:12px;font-weight:700;color:${chosenMode==='elearning'?'var(--blue)':'var(--text2)'};">Self-Learning</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px;">At your own pace · Online</div>
+            </div>
+          </div>
+        </div>` : lm==='both' && s.sessionStatus==='completed' ? '' :
+        `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:${lm==='elearning'?'rgba(29,78,216,.06)':'rgba(22,163,74,.05)'};border:1px solid ${lm==='elearning'?'rgba(29,78,216,.15)':'rgba(22,163,74,.15)'};">
+          <span style="font-size:16px;">${lm==='elearning'?'💻':'🗓'}</span>
+          <span style="font-size:11px;font-weight:700;color:${lm==='elearning'?'var(--blue)':'var(--green)'};">${lm==='elearning'?'Self-Learning (E-Learning)':'Instructor-Led Session'}</span>
+        </div>`;
+
+        // E-learning materials (before/during) shown when chosen elearning or elearning only
+        const showElearn = lm==='elearning' || chosenMode==='elearning';
+        const elearnMats = (s.mats||[]).filter(m=>m.vis==='before'||m.vis==='during');
+        const eLearnBlock = showElearn && elearnMats.length ? `
+        <div style="margin-top:11px;border:1px solid var(--border);border-radius:9px;overflow:hidden;">
+          <div style="padding:9px 13px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;background:var(--surface2);">💻 E-Learning Materials</div>
+          ${elearnMats.map(m=>`
+          <div style="display:flex;align-items:center;gap:9px;padding:9px 13px;border-bottom:1px solid var(--border);last-child:border-none;">
+            <span style="font-size:16px;">${m.ic}</span>
+            <div style="flex:1;"><div style="font-size:11px;font-weight:700;">${m.n}</div><div style="font-size:9px;color:var(--text3);">${m.type.toUpperCase()} · ${m.sz}</div></div>
+            ${m.type==='video'?`<button onclick="toast('Opening video…','b')" style="padding:5px 11px;background:rgba(220,38,38,.08);color:var(--red);border:1px solid rgba(220,38,38,.15);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">▶ Watch</button>`:
+              m.type==='pptx'?`<button onclick="toast('Opening slides…','b')" style="padding:5px 11px;background:rgba(29,78,216,.06);color:var(--blue);border:1px solid rgba(29,78,216,.15);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">📊 Open</button>`:
+              `<button onclick="toast('Downloading…','b')" style="padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:10px;">📥</button>`}
+          </div>`).join('')}
+          ${s.quizzes?.length?`<div style="padding:9px 13px;background:rgba(107,45,94,.03);">
+            ${s.quizzes.map(qz=>`
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--accent-h);border:1px solid rgba(107,45,94,.15);border-radius:8px;">
+              <span>📝</span><div style="flex:1;font-size:11px;font-weight:700;">${qz.title} <span style="font-weight:400;color:var(--text2);">· ${qz.qs.length} Qs · ${qz.marks} marks</span></div>
+              <button onclick="EMP_LIVE_TAB='quiz';EMP_QUIZ_IDX=0;EMP_QUIZ_ANSWERS={};EMP_QUIZ_DONE=false;EMP_EXPANDED='${cid}';EMP_SHOW_PROFILE=false;showPage('emp-dash')" style="padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">Take Quiz →</button>
+            </div>`).join('')}
+          </div>`:''}
+        </div>` : '';
+
+        return `<div style="padding:14px 18px;${si<sessions.length-1?'border-bottom:1px solid var(--border)':''}">
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            <div style="text-align:center;width:42px;flex-shrink:0;">
+              <div style="font-size:20px;font-weight:800;color:${s.sessionStatus==='completed'?'var(--green)':'var(--accent)'};line-height:1;">${s.sessionStatus==='completed'?'✓':new Date(s.days[0].date).getDate()}</div>
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;">${s.sessionStatus==='completed'?'Done':new Date(s.days[0].date).toLocaleString('en',{month:'short'})}</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;align-items:center;">
+                <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:${s.type==='Online'?'rgba(29,78,216,.08)':s.type==='Hybrid'?'var(--accent-h)':'rgba(22,163,74,.08)'};color:${s.type==='Online'?'var(--blue)':s.type==='Hybrid'?'var(--accent)':'var(--green)'};">${s.type}</span>
+                ${lm==='both'?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(107,45,94,.08);color:var(--accent);">Session + E-Learning</span>`:''}
+                ${s.sessionStatus==='completed'?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(22,163,74,.08);color:var(--green);">✓ Completed</span>`:''}
+                ${s.days.length>1?`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:var(--surface3);color:var(--text2);">${s.days.length}-day</span>`:''}
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:9px;">
+                ${s.days.map((d,di)=>`
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${d.status==='done'?'rgba(22,163,74,.05)':'var(--surface2)'};border:1px solid ${d.status==='done'?'rgba(22,163,74,.2)':'var(--border)'};border-radius:7px;">
+                  <span style="font-size:12px;">${d.status==='done'?'✅':d.status==='live'?'🟢':'📅'}</span>
+                  <span style="font-size:11px;font-weight:600;">${d.label}</span>
+                  <span style="font-size:11px;color:var(--text2);">${fd(d.date)}</span>
+                  <span style="font-size:10px;color:var(--text2);">⏰ ${d.ts}–${d.te}</span>
+                  <span style="margin-left:auto;font-size:10px;font-weight:600;color:${d.status==='done'?'var(--green)':d.status==='live'?'var(--green)':'var(--text3)'};">${d.status==='done'?'Attended':d.status==='live'?'Live Now':'—'}</span>
+                </div>`).join('')}
+              </div>
+              <div style="font-size:11px;color:var(--text2);">📍 ${s.loc} &nbsp;·&nbsp; 👨‍🏫 ${s.instructor}</div>
+              <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+                <div style="width:90px;height:3px;background:var(--surface3);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${pct>=90?'var(--red)':'var(--accent)'};border-radius:3px;"></div></div>
+                <span style="font-size:10px;color:var(--text2);">${s.enrolled}/${s.seats} enrolled</span>
+                ${s.sessionStatus==='upcoming'?`<span style="font-size:10px;color:${daysLeft<=7?'var(--orange)':'var(--text3)'};">${daysLeft===0?'Today':daysLeft+'d away'}</span>`:''}
+              </div>
+              ${s.sessionStatus==='completed'?`
+              <div style="margin-top:9px;padding:9px 12px;background:rgba(22,163,74,.05);border:1px solid rgba(22,163,74,.15);border-radius:8px;font-size:11px;display:flex;gap:12px;">
+                <span>📊 Quiz: <strong>${s.quizScore||'—'}%</strong></span>
+                <span>🏆 Exam: <strong>${s.examScore||'—'}%</strong></span>
+                <span>📅 Attendance: <strong>${s.attendanceDays}/${s.days.length} days</strong></span>
+              </div>`:''}
+              ${modePicker}
+              ${eLearnBlock}
+            </div>
+            <div style="flex-shrink:0;">
+              ${s.sessionStatus==='upcoming'&&(chosenMode==='session'||lm==='session')?
+                s.enrolled>=s.seats?`<button disabled style="padding:7px 14px;background:var(--surface3);color:var(--text3);border:none;border-radius:7px;font-size:11px;cursor:not-allowed;">Full</button>`:
+                `<button onclick="toast('Registered!','g')" style="padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">Register</button>`:''}
+              ${s.sessionStatus==='live'?`<button onclick="EMP_SHOW_PROFILE=false;EMP_LIVE_TAB='materials';showPage('emp-dash')" style="padding:7px 16px;background:#16a34a;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">🟢 Enter</button>`:''}
+              ${s.sessionStatus==='completed'?`<button onclick="toast('Opening record…','b')" style="padding:7px 12px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;">Record</button>`:''}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+      ${beforeMats.length?`
+      <div style="padding:13px 18px;background:var(--surface2);border-top:1px solid var(--border);">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;">📁 Pre-Session Materials — Available Now</div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          ${beforeMats.map(m=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+            <span style="font-size:16px;">${m.ic}</span>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:700;">${m.n}</div><div style="font-size:10px;color:var(--text3);">${m.type.toUpperCase()} · ${m.sz}</div></div>
+            <button onclick="toast('Downloading…','b')" style="padding:6px 13px;border:1px solid var(--border);background:var(--surface2);border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;">📥 Download</button>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+    </div>`;
+  };
+
+  // ═══════════════════════════════════════════════════════
+  // MAIN CONTROL PANEL PAGE
+  // ═══════════════════════════════════════════════════════
+  return `
+<style>
+@keyframes ep-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes emp-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.e-sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.e-hd{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.e-hd-t{font-size:13px;font-weight:700;}
+.etabs{display:flex;gap:3px;background:var(--surface3);border-radius:8px;padding:3px;}
+.etab{padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;color:var(--text2);border:none;background:transparent;font-weight:600;font-family:inherit;transition:all .12s;}
+.etab.on{background:var(--surface);color:var(--accent);font-weight:700;box-shadow:0 0 0 1px var(--border);}
+.ecard{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .14s;padding:13px 15px;}
+.ecard:hover{border-color:var(--accent);}
+.erow{display:flex;align-items:center;gap:11px;padding:12px 18px;border-bottom:1px solid var(--border);}
+.erow:last-child{border-bottom:none;}
+</style>
+
+<div style="padding:24px 28px 40px;display:flex;flex-direction:column;gap:18px;max-width:1080px;margin:0 auto;">
+
+  <!-- ① HEADER -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+    <div>
+      <div style="font-size:21px;font-weight:800;">Good day, ${D.name.split(' ')[0]} 👋</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px;">${D.role} · ${D.dept}</div>
+    </div>
+    <button onclick="toast('Request submitted!','g')" style="padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">+ Request Course</button>
+  </div>
+
+  <!-- ② STATS -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+    ${[
+      {l:'Mandatory Done', v:`${done}/${total}`, c:over>0?'var(--red)':'var(--green)',  s:over>0?`⚠ ${over} overdue`:'✓ On track',  ic:'🎯'},
+      {l:'Live Now',       v:liveEntry?1:0,       c:'var(--green)',                      s:liveEntry?'Session in progress':'No active sessions', ic:'🟢'},
+      {l:'Completed',      v:D.history.length,    c:'var(--accent)',                     s:'Total sessions',    ic:'✅'},
+      {l:'Avg Score',      v:'90%',               c:'var(--orange)',                     s:'Across all exams',  ic:'📊'},
+    ].map(({l,v,c,s,ic})=>`
+    <div class="e-sec" style="padding:16px 18px;border-top:3px solid ${c};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div style="font-size:11px;color:var(--text2);">${l}</div><span style="font-size:18px;">${ic}</span></div>
+      <div style="font-size:24px;font-weight:800;color:${c};margin-bottom:3px;">${v}</div>
+      <div style="font-size:11px;color:var(--text3);">${s}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- ③ LIVE BANNER -->
+  ${liveEntry?`
+  <div onclick="EMP_EXPANDED='${liveEntry[0]}';EMP_LIVE_TAB='materials';showPage('emp-dash')" style="background:linear-gradient(135deg,#0a1f0a,#0e2a0e);border:1.5px solid #16a34a;border-radius:14px;padding:16px 22px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:box-shadow .14s;" onmouseover="this.style.boxShadow='0 4px 20px rgba(22,163,74,.25)'" onmouseout="this.style.boxShadow='none'">
+    <div style="width:10px;height:10px;border-radius:50%;background:#4ade80;animation:ep-pulse 1.5s infinite;flex-shrink:0;"></div>
+    <div style="flex:1;">
+      <div style="font-size:10px;color:#4ade80;font-weight:700;letter-spacing:.09em;margin-bottom:3px;">🟢 LIVE NOW</div>
+      <div style="font-size:15px;font-weight:800;color:#fff;">${liveEntry[1].title}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;">
+        Day ${(liveEntry[1].sessions[0]?.days.find(d=>d.status==='live')?liveEntry[1].sessions[0].days.findIndex(d=>d.status==='live')+1:1)} in progress &nbsp;·&nbsp;
+        👨‍🏫 ${liveEntry[1].sessions[0]?.instructor} &nbsp;·&nbsp; 📍 ${liveEntry[1].sessions[0]?.loc}
+      </div>
+    </div>
+    <button style="padding:10px 22px;background:#16a34a;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;">Enter Session →</button>
+  </div>`:''}
+
+  <!-- ④ EXAM ALERT (only if examSent=true) -->
+  ${Object.entries(D.courses).filter(([cid,c])=>c.sessions?.some(s=>s.examSent&&!EMP_EXAM_DONE[cid])).map(([cid,c])=>{
+    const s=c.sessions.find(se=>se.examSent);
+    return `<div class="e-sec" style="padding:15px 20px;border-left:4px solid var(--red);display:flex;align-items:center;gap:13px;">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(220,38,38,.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📝</div>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Exam pending: ${s.finalExam?.name||c.title}</div><div style="font-size:11px;color:var(--red);margin-top:2px;">Exam sent by instructor — take it now</div></div>
+      <button onclick="EMP_EXPANDED='${cid}';EMP_LIVE_TAB='exam';showPage('emp-dash')" style="padding:9px 20px;background:var(--red);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">Take Now →</button>
+    </div>`;
+  }).join('')}
+
+  <!-- ④ INVITES -->
+  ${D.invites.map(inv=>`
+  <div class="e-sec" style="padding:15px 20px;border-left:4px solid var(--accent);display:flex;align-items:center;gap:13px;">
+    <div style="width:40px;height:40px;border-radius:10px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📨</div>
+    <div style="flex:1;"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;">${inv.mandatory?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(220,38,38,.1);color:var(--red);">Mandatory</span>`:''}<span style="font-size:13px;font-weight:700;">${inv.title}</span></div><div style="font-size:11px;color:var(--text2);">📅 ${fd(inv.date)} · 👨‍🏫 ${inv.instructor}</div></div>
+    <div style="display:flex;gap:7px;"><button onclick="toast('Confirmed!','g')" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;">Confirm</button><button onclick="toast('Declined','r')" style="padding:8px 14px;border:1px solid var(--border);background:var(--surface);border-radius:8px;cursor:pointer;font-size:12px;">Decline</button></div>
+  </div>`).join('')}
+
+  <!-- ⑤ UPCOMING SESSIONS -->
+  <div class="e-sec">
+    <div class="e-hd"><div class="e-hd-t">🗓 Upcoming Sessions</div><span style="font-size:11px;color:var(--text2);">${upcomingSessions.length} session${upcomingSessions.length!==1?'s':''}</span></div>
+    ${upcomingSessions.length===0?`<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px;">No upcoming sessions.</div>`:''}
+    ${upcomingSessions.map(s=>{
+      const dl=Math.ceil((new Date(s.days[0].date)-new Date())/86400000);
+      const c=D.courses[s.cid];
+      return `<div class="erow" style="cursor:pointer;" onclick="EMP_SHOW_PROFILE=true;EMP_EXPANDED='${s.cid}';showPage('emp-dash')" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''"">
+        <div style="text-align:center;width:42px;flex-shrink:0;">
+          <div style="font-size:19px;font-weight:800;color:var(--accent);line-height:1;">${new Date(s.days[0].date).getDate()}</div>
+          <div style="font-size:9px;color:var(--text3);text-transform:uppercase;">${new Date(s.days[0].date).toLocaleString('en',{month:'short'})}</div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.courseTitle}</div>
+          <div style="display:flex;align-items:center;gap:7px;margin-top:3px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:${s.type==='Online'?'rgba(29,78,216,.08)':'rgba(22,163,74,.08)'};color:${s.type==='Online'?'var(--blue)':'var(--green)'};">${s.type}</span>
+            <span style="font-size:11px;color:var(--text2);">⏰ ${s.days[0].ts}–${s.days[0].te}</span>
+            <span style="font-size:11px;color:var(--text2);">📍 ${s.loc}</span>
+            ${s.days.length>1?`<span style="font-size:10px;color:var(--text3);">${s.days.length} days</span>`:''}
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:${dl<=7?'var(--orange)':'var(--text2)'};flex-shrink:0;">${dl===0?'Today':dl+'d'}</div>
+        <span style="font-size:13px;color:var(--text3);">›</span>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <!-- ⑥ TARGET ROLE COURSES -->
+  <div class="e-sec">
+    <div class="e-hd">
+      <div>
+        <div class="e-hd-t">🎯 Target Role Courses</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Safety Officer · HSE</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;color:var(--text2);">${Object.values(D.courses).filter(c=>c.status==='completed').length}/${Object.keys(D.courses).length} done</span>
+        <div class="etabs">
+          ${[['TR_all','All'],['TR_mandatory','Mandatory'],['TR_recommended','Recommended'],['TR_optional','Optional']].map(([t,l])=>`
+          <button class="etab ${EMP_COURSE_TAB===t?'on':''}" onclick="EMP_COURSE_TAB='${t}';EMP_EXPANDED=null;showPage('emp-dash')">${l}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div>
+    ${Object.entries(D.courses).filter(([,c])=>{
+      if(EMP_COURSE_TAB==='TR_mandatory')   return c.type==='mandatory';
+      if(EMP_COURSE_TAB==='TR_recommended') return c.type==='recommended';
+      if(EMP_COURSE_TAB==='TR_optional')    return c.type==='optional';
+      return true;
+    }).map(([cid,c])=>{
+      const isDone = c.status==='completed';
+      const isLive = c.status==='live';
+      const isOver = c.status==='overdue';
+      const tagBg  = isDone?'rgba(22,163,74,.08)':isLive?'rgba(22,163,74,.1)':isOver?'rgba(220,38,38,.08)':c.type==='mandatory'?'rgba(220,38,38,.06)':c.type==='recommended'?'var(--accent-h)':'var(--surface3)';
+      const tagC   = isDone?'var(--green)':isLive?'var(--green)':isOver?'var(--red)':c.type==='mandatory'?'var(--red)':c.type==='recommended'?'var(--accent)':'var(--text2)';
+      const tagLbl = isDone?'✓ Done':isLive?'🟢 Live':isOver?'⚠ Overdue':c.type==='mandatory'?'Mandatory':c.type==='recommended'?'Recommended':'Optional';
+      const borderL= isDone?'var(--green)':isLive?'#16a34a':isOver?'var(--red)':c.type==='mandatory'?'rgba(220,38,38,.35)':c.type==='recommended'?'var(--accent)':'var(--border)';
+      const isExp  = EMP_EXPANDED===('TR_'+cid);
+
+      let expandContent = '';
+      if(isExp){
+        if(isDone){
+          const ses=c.sessions[0];
+          expandContent=`
+          <div style="border-top:1px solid var(--border);background:rgba(22,163,74,.02);">
+            <div style="display:flex;align-items:center;gap:11px;padding:12px 18px;">
+              <span style="font-size:16px;">✅</span>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--green);">Score ${c.score}% — Passed (min ${c.pm}%)</div><div style="font-size:11px;color:var(--text2);">Certificate valid until ${fd(c.exp)}</div></div>
+              <button onclick="toast('Downloading…','g')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">🏅 Certificate</button>
+            </div>
+            ${ses?`<div style="margin:0 18px 12px;display:flex;gap:12px;align-items:center;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text2);">
+              <span>📊 Quiz: <strong>${ses.quizScore||'—'}%</strong></span>
+              <span>🏆 Exam: <strong>${ses.examScore||'—'}%</strong></span>
+              <span>📅 Attendance: <strong>${ses.attendanceDays}/${ses.days.length} days</strong></span>
+            </div>`:''}
+          </div>`;
+        } else {
+          expandContent=`
+          <div style="padding:12px 18px;border-top:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px;">${c.desc}</div>
+            ${isOver?`<div style="display:flex;align-items:center;gap:9px;padding:9px 13px;background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.15);border-radius:8px;"><span>⚠️</span><span style="flex:1;font-size:11px;color:var(--red);font-weight:600;">Overdue — no session scheduled yet</span><button onclick="toast('Request submitted!','g')" style="padding:5px 12px;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">Request</button></div>`:''}
+            ${isLive?`<div style="display:flex;align-items:center;gap:9px;padding:9px 13px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);border-radius:8px;"><span style="animation:ep-pulse 1.5s infinite;display:inline-block;">🟢</span><span style="flex:1;font-size:11px;font-weight:700;color:var(--green);">Session in progress</span><button onclick="EMP_SHOW_PROFILE=true;EMP_EXPANDED='${cid}';showPage('emp-dash')" style="padding:5px 12px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">View →</button></div>`:''}
+            ${!isOver&&!isLive&&c.sessions.length>0?`<div style="font-size:11px;color:var(--text2);">${c.sessions.length} session${c.sessions.length>1?'s':''} available — <button onclick="EMP_SHOW_PROFILE=true;EMP_EXPANDED='${cid}';showPage('emp-dash')" style="background:none;border:none;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:0;">View sessions →</button></div>`:`<div style="font-size:11px;color:var(--text3);">No sessions available yet.</div>`}
+          </div>`;
+        }
+      }
+
+      return `
+      <div style="border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:13px;padding:12px 18px;cursor:pointer;transition:background .12s;border-left:3px solid ${borderL};"
+          onclick="EMP_EXPANDED=EMP_EXPANDED===('TR_'+'${cid}')?null:'TR_${cid}';showPage('emp-dash')"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:${c.prog>0&&!isDone?'5':'0'}px;">${c.title}</div>
+            ${isDone?`<div style="font-size:10px;color:var(--text2);margin-top:2px;">Score ${c.score}% · Exp ${fd(c.exp)}</div>`:
+              c.prog>0?`<div style="display:flex;align-items:center;gap:7px;"><div style="flex:1;max-width:120px;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${c.prog}%;background:var(--accent);border-radius:2px;"></div></div><span style="font-size:10px;color:var(--text3);">${c.prog}%</span></div>`:
+              isOver?`<div style="font-size:10px;color:var(--red);margin-top:2px;">No session scheduled</div>`:
+              c.sessions.length?`<div style="font-size:10px;color:var(--text2);margin-top:2px;">${c.sessions.length} session${c.sessions.length>1?'s':''} available</div>`:
+              `<div style="font-size:10px;color:var(--text3);margin-top:2px;">Not started</div>`}
+          </div>
+          <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:${tagBg};color:${tagC};white-space:nowrap;flex-shrink:0;">${tagLbl}</span>
+          <span style="font-size:14px;color:var(--text3);transition:transform .2s;display:inline-block;${isExp?'transform:rotate(90deg)':''}">›</span>
+        </div>
+        ${expandContent}
+      </div>`;
+    }).join('')}
+    </div>
+  </div>
+
+  <!-- ⑦ MY COURSES (enrolled only) -->
+  <div class="e-sec">
+    <div class="e-hd">
+      <div>
+        <div class="e-hd-t">📚 My Courses</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Courses you're enrolled in or have completed</div>
+      </div>
+    </div>
+    <div>
+    ${Object.entries(D.courses).filter(([,c])=>['completed','live','inprogress'].includes(c.status)||c.sessions.some(s=>s.sessionStatus==='upcoming')).map(([cid,c])=>{
+      const ses = c.sessions[0];
+      const isLive=c.status==='live';
+      const isDone=c.status==='completed';
+      const liveDayIdx = isLive?(ses?.days.findIndex(d=>d.status==='live')||0):0;
+      const isExp = EMP_EXPANDED===('MY_'+cid);
+
+      const tagBg=isDone?'rgba(22,163,74,.08)':isLive?'rgba(22,163,74,.1)':'var(--accent-h)';
+      const tagC =isDone?'var(--green)':isLive?'var(--green)':'var(--accent)';
+      const tagLbl=isDone?'✓ Done':isLive?'🟢 Live':'Upcoming';
+      const borderL=isDone?'var(--green)':isLive?'#16a34a':'var(--accent)';
+
+      const expandContent = isExp ? `
+      <div style="border-top:1px solid var(--border);">
+        ${ses?.days.map((day,di)=>{
+          const pastDay=day.status==='done';
+          const liveDay=day.status==='live';
+          const upDay  =!pastDay&&!liveDay;
+          return `
+          <div style="border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:${liveDay?'rgba(22,163,74,.03)':pastDay?'transparent':'var(--surface2)'};">
+              <span style="font-size:16px;flex-shrink:0;">${pastDay?'✅':liveDay?'🟢':'📅'}</span>
+              <div style="flex:1;">
+                <div style="font-size:12px;font-weight:700;">${day.label} — ${fd(day.date)}</div>
+                <div style="font-size:10px;color:var(--text2);">⏰ ${day.ts}–${day.te}</div>
+              </div>
+              <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:${pastDay?'rgba(22,163,74,.08)':liveDay?'rgba(22,163,74,.12)':'var(--surface3)'};color:${pastDay?'var(--green)':liveDay?'var(--green)':'var(--text3)'};">${pastDay?'Attended':liveDay?'Live Now':'Upcoming'}</span>
+              ${liveDay?`<button onclick="EMP_SHOW_PROFILE=false;EMP_LIVE_TAB='materials';EMP_EXPANDED='${cid}';showPage('emp-dash')" style="padding:5px 13px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">Enter →</button>`:''}
+            </div>
+          </div>`;
+        }).join('')||''}
+        ${isDone&&ses?`
+        <div style="padding:11px 18px;background:rgba(22,163,74,.02);">
+          <div style="display:flex;gap:12px;font-size:11px;color:var(--text2);align-items:center;">
+            <span>📊 Quiz: <strong>${ses.quizScore}%</strong></span>
+            <span>🏆 Exam: <strong>${ses.examScore}%</strong></span>
+            <span>📅 Attendance: <strong>${ses.attendanceDays}/${ses.days.length} days</strong></span>
+            <button onclick="toast('Downloading certificate…','g')" style="margin-left:auto;padding:5px 12px;background:var(--green);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">🏅 Certificate</button>
+          </div>
+        </div>`:''}
+        ${ses?.mats?.filter(m=>m.vis==='before').length?`
+        <div style="padding:11px 18px;border-top:1px solid var(--border);">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">📁 Pre-Session Materials</div>
+          ${ses.mats.filter(m=>m.vis==='before').map(m=>`
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
+            <span>${m.ic}</span><div style="flex:1;font-size:11px;font-weight:600;">${m.n}</div>
+            <button onclick="toast('Downloading…','b')" style="padding:4px 11px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:10px;">📥</button>
+          </div>`).join('')}
+        </div>`:''}
+      </div>` : '';
+
+      return `
+      <div style="border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:13px;padding:12px 18px;cursor:pointer;transition:background .12s;border-left:3px solid ${borderL};"
+          onclick="EMP_EXPANDED=EMP_EXPANDED===('MY_'+'${cid}')?null:'MY_${cid}';showPage('emp-dash')"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:${c.prog>0?'5':'0'}px;">${c.title}</div>
+            ${c.prog>0?`<div style="display:flex;align-items:center;gap:7px;"><div style="flex:1;max-width:140px;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${c.prog}%;background:${isDone?'var(--green)':isLive?'#16a34a':'var(--accent)'};border-radius:2px;"></div></div><span style="font-size:10px;color:var(--text3);">${c.prog}%</span></div>`:''}
+            ${isLive?`<div style="font-size:10px;color:var(--text2);margin-top:3px;">Day ${liveDayIdx+1} of ${ses?.days.length} in progress</div>`:''}
+            ${isDone?`<div style="font-size:10px;color:var(--text2);margin-top:3px;">Score ${c.score}% · Exp ${fd(c.exp)}</div>`:''}
+            ${!isDone&&!isLive&&ses?`<div style="font-size:10px;color:var(--text2);margin-top:3px;">${fd(ses.days[0].date)} · ${ses.days[0].ts}–${ses.days[0].te} · ${ses.loc}</div>`:''}
+          </div>
+          <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:${tagBg};color:${tagC};white-space:nowrap;flex-shrink:0;">${tagLbl}</span>
+          <span style="font-size:13px;color:var(--text3);transition:transform .2s;${isExp?'transform:rotate(90deg)':''}">›</span>
+        </div>
+        ${expandContent}
+      </div>`;
+    }).join('')}
+    </div>
+  </div>
+
+
+  <div class="e-sec">
+    <div class="e-hd"><div class="e-hd-t">📋 Sessions History</div></div>
+    ${D.history.map(h=>`
+    <div class="erow">
+      <div style="width:36px;height:36px;border-radius:9px;background:rgba(22,163,74,.08);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">✅</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;">${h.title}</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">📅 ${h.date} · Present: ${h.present} · Avg: ${h.avg}</div></div>
+      <span style="font-size:10px;padding:2px 8px;border-radius:5px;background:var(--accent-h);color:var(--accent);">${h.type}</span>
+      <div style="font-size:13px;color:var(--orange);">${'★'.repeat(Math.round(h.rating))}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- ⑧ CERTIFICATES -->
+  <div class="e-sec">
+    <div class="e-hd"><div class="e-hd-t">🏅 My Certificates</div></div>
+    <div style="padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+    ${D.certs.map(ct=>{const days=Math.ceil((new Date(ct.exp)-new Date())/86400000);const warn=days<90;return `
+    <div style="padding:13px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:flex;gap:9px;align-items:flex-start;">
+      <span style="font-size:20px;flex-shrink:0;">🏅</span>
+      <div style="flex:1;min-width:0;"><div style="font-size:11px;font-weight:700;margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ct.title}</div>
+      <span style="font-size:10px;padding:2px 7px;border-radius:5px;background:${warn?'rgba(217,119,6,.08)':'rgba(22,163,74,.08)'};color:${warn?'var(--orange)':'var(--green)'};">${warn?'Exp in '+Math.round(days/30)+'mo':'Valid · '+fd(ct.exp)}</span></div>
+      <button onclick="toast('Downloading…','b')" style="padding:4px 8px;border:1px solid var(--border);background:var(--surface);border-radius:5px;cursor:pointer;font-size:10px;flex-shrink:0;">📥</button>
+    </div>`}).join('')}
+    </div>
+  </div>
+
+  <!-- ⑨ REQUEST -->
+  <div style="border:1.5px dashed var(--border);border-radius:14px;padding:18px 22px;display:flex;align-items:center;gap:14px;">
+    <div style="width:38px;height:38px;border-radius:10px;background:rgba(22,163,74,.08);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">➕</div>
+    <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Need a specific training?</div><div style="font-size:11px;color:var(--text2);">Submit a request and your manager will review it.</div></div>
+    <button onclick="toast('Request submitted!','g')" style="padding:10px 22px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">Request training →</button>
+  </div>
+
+</div>`;
+}
+
+
+function empCourses() { return `<div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
   <div class="sc a"><div class="sc-label">Mandatory</div><div class="sc-val" style="color:var(--accent)">5</div></div>
   <div class="sc g"><div class="sc-label">Completed</div><div class="sc-val">4</div></div>
   <div class="sc o"><div class="sc-label">In Progress</div><div class="sc-val" style="color:var(--orange)">1</div></div>
@@ -4759,6 +5496,7 @@ ${[
   </div>
 </div>`).join('')}
 </div>`; }
+
 
 function empSessions() { return `
 <div class="ph"><div class="pt">Available Sessions <small>Browse and self-register for open sessions</small></div></div>
