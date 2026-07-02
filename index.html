@@ -548,7 +548,7 @@ tbody tr:hover td{color:var(--text);}
     <div class="login-sub">Sign in to your portal</div>
 
     <div class="quick-login-label">⚡ Quick Login — Select your role</div>
-    <div class="quick-btns">
+    <div class="quick-btns" style="grid-template-columns:1fr 1fr 1fr;">
       <div class="quick-btn active" onclick="selectRole('admin',this)">
         <div class="qb-icon">👔</div>
         <div class="qb-role">ADMIN</div>
@@ -563,6 +563,21 @@ tbody tr:hover td{color:var(--text);}
         <div class="qb-icon">👷</div>
         <div class="qb-role">EMPLOYEE</div>
         <div class="qb-name">Nora Al-Qahtani</div>
+      </div>
+      <div class="quick-btn" onclick="selectRole('provider',this)">
+        <div class="qb-icon">🏢</div>
+        <div class="qb-role">PROVIDER</div>
+        <div class="qb-name">TrainPro Co.</div>
+      </div>
+      <div class="quick-btn" onclick="selectRole('buyer_company',this)">
+        <div class="qb-icon">🏬</div>
+        <div class="qb-role">COMPANY</div>
+        <div class="qb-name">Al-Rashid Industries</div>
+      </div>
+      <div class="quick-btn" onclick="selectRole('individual',this)">
+        <div class="qb-icon">🧑</div>
+        <div class="qb-role">INDIVIDUAL</div>
+        <div class="qb-name">Faisal Al-Dossari</div>
       </div>
     </div>
 
@@ -1687,6 +1702,9 @@ const USERS = {
   admin:      { name:'Zaid Hadi',          role:'Safety Engineer',       initials:'ZH', avClass:'admin',      badge:'ADMIN' },
   instructor: { name:'Dr. Mohammed Al-Zahrani', role:'Fire Safety Instructor', initials:'MZ', avClass:'instructor', badge:'INSTRUCTOR' },
   employee:   { name:'Nora Al-Qahtani',    role:'Safety Officer',        initials:'NQ', avClass:'employee',   badge:'EMPLOYEE' },
+  provider:      { name:'TrainPro Co.',         role:'Training Provider',     initials:'TP', avClass:'admin',      badge:'PROVIDER' },
+  buyer_company: { name:'Al-Rashid Industries', role:'HR Manager — Maha Saleh', initials:'AR', avClass:'admin',  badge:'COMPANY' },
+  individual:    { name:'Faisal Al-Dossari',    role:'Individual Learner',    initials:'FD', avClass:'employee',   badge:'INDIVIDUAL' },
 };
 
 const NOTIFICATIONS = {
@@ -1707,6 +1725,20 @@ const NOTIFICATIONS = {
     { icon:'⚠️', cls:'o', title:'Mandatory Training Overdue', sub:'PPE & Workplace Safety expired Jan 2026', time:'3 days ago', unread:true },
     { icon:'🏆', cls:'g', title:'Certificate Ready', sub:'Risk Assessment — Download available', time:'1 week ago', unread:false },
   ],
+  provider: [
+    { icon:'✅', cls:'g', title:'Course Approved', sub:'ISO 45001 Lead Implementer was approved by admin', time:'1 hour ago', unread:true },
+    { icon:'📋', cls:'b', title:'New Enrollment Request', sub:'Al-Rashid Industries requested 12 seats — ISO 45001 Awareness', time:'4 hours ago', unread:true },
+    { icon:'💬', cls:'b', title:'Custom Request Match', sub:'A company is looking for: ISO 45001 — On-site, Riyadh', time:'1 day ago', unread:false },
+  ],
+  buyer_company: [
+    { icon:'✅', cls:'g', title:'Enrollment Confirmed', sub:'TrainPro Co. confirmed 12 seats for ISO 45001 Awareness', time:'2 hours ago', unread:true },
+    { icon:'💰', cls:'b', title:'Quote Received', sub:'SafeCert Academy sent a quote for your custom request', time:'5 hours ago', unread:true },
+    { icon:'📅', cls:'g', title:'Session Reminder', sub:'On-site ISO 45001 training starts in 3 days', time:'1 day ago', unread:false },
+  ],
+  individual: [
+    { icon:'🎓', cls:'g', title:'Enrollment Confirmed', sub:'You are enrolled in ISO 45001 Internal Auditor', time:'3 hours ago', unread:true },
+    { icon:'💰', cls:'b', title:'New Offer', sub:'2 providers responded to your custom request', time:'1 day ago', unread:false },
+  ],
 };
 
 const SIDEBARS = {
@@ -1722,6 +1754,7 @@ const SIDEBARS = {
     { section:'Records', items:[
       { id:'employees', icon:'👥', label:'Employee Records' },
       { id:'admin-requests', icon:'📝', label:'Training Requests', badge:'3', badgeCls:'' },
+      { id:'admin-provider-approvals', icon:'🏢', label:'Provider Approvals', badge:'1', badgeCls:'o' },
       { id:'reports', icon:'📈', label:'Reports & Analytics' },
       { id:'certs', icon:'🏆', label:'Certificates' },
     ]},
@@ -1744,6 +1777,21 @@ const SIDEBARS = {
       { id:'emp-dash', icon:'⊞', label:'Control Panel' },
     ]},
   ],
+  provider: [
+    { section:'', items:[
+      { id:'prov-dash', icon:'⊞', label:'Provider Control Panel' },
+    ]},
+  ],
+  buyer_company: [
+    { section:'', items:[
+      { id:'buy-dash', icon:'⊞', label:'External Training Hub' },
+    ]},
+  ],
+  individual: [
+    { section:'', items:[
+      { id:'ind-dash', icon:'⊞', label:'External Training Hub' },
+    ]},
+  ],
 };
 
 // ══════════════════════════════════════════
@@ -1753,7 +1801,7 @@ function selectRole(role, el) {
   currentRole = role;
   document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
-  const emails = { admin:'zaid.hadi@safetyplus.sa', instructor:'mohammed.zahrani@safetyplus.sa', employee:'nora.qahtani@safetyplus.sa' };
+  const emails = { admin:'zaid.hadi@safetyplus.sa', instructor:'mohammed.zahrani@safetyplus.sa', employee:'nora.qahtani@safetyplus.sa', provider:'sales@trainpro.sa', buyer_company:'hr@alrashid.sa', individual:'faisal.dossari@gmail.com' };
   document.getElementById('login-email').value = emails[role];
 }
 
@@ -1794,7 +1842,7 @@ function initApp() {
   buildSidebar();
   buildNotifications();
 
-  const firstPage = { admin:'dash', instructor:'instr-dash', employee:'emp-dash' }[currentRole];
+  const firstPage = { admin:'dash', instructor:'instr-dash', employee:'emp-dash', provider:'prov-dash', buyer_company:'buy-dash', individual:'ind-dash' }[currentRole];
   showPage(firstPage);
 }
 
@@ -1804,8 +1852,8 @@ function initApp() {
 function buildSidebar() {
   const sb = document.getElementById('sidebar');
   const mc = document.getElementById('main-content');
-  // Employee: hide sidebar, full-width layout
-  if(currentRole === 'employee') {
+  // Single-page Control Panel roles: hide sidebar, full-width layout
+  if(['employee','provider','buyer_company','individual'].includes(currentRole)) {
     sb.style.display = 'none';
     mc.style.marginLeft = '0';
     mc.style.padding = '0';
@@ -1843,8 +1891,11 @@ function showPage(id) {
   const mc = document.getElementById('main-content');
   mc.innerHTML = '';
   const div = document.createElement('div');
-  // Employee Control Panel: full bleed, no padding
-  if(currentRole === 'employee' && id === 'emp-dash') {
+  // Single-page Control Panel roles: full bleed, no padding
+  if((currentRole === 'employee' && id === 'emp-dash') ||
+     (currentRole === 'provider' && id === 'prov-dash') ||
+     (currentRole === 'buyer_company' && id === 'buy-dash') ||
+     (currentRole === 'individual' && id === 'ind-dash')) {
     div.className = 'page active';
     div.style.padding = '0';
   } else {
@@ -1874,6 +1925,7 @@ function getPageHTML(id) {
     'admin-emp-detail':  () => adminEmpDetail(),
     'reports':       () => adminReports(),
     'admin-requests':() => adminRequests(),
+    'admin-provider-approvals': () => adminProviderApprovals(),
     'certs':         () => adminCerts(),
     'settings':      () => `<div class="ph"><div class="pt">Settings <small>System configuration</small></div></div><div class="info-box">⚙️ Settings panel coming soon.</div>`,
 
@@ -1896,6 +1948,15 @@ function getPageHTML(id) {
     'emp-record':   () => empRecord(),
     'emp-history':  () => empRecord(),
     'emp-certs':    () => empCerts(),
+
+    // ── PROVIDER PAGES ───────────────────
+    'prov-dash':    () => provDash(),
+
+    // ── BUYER (COMPANY) PAGES ────────────
+    'buy-dash':    () => buyDash(),
+
+    // ── INDIVIDUAL PAGES ──────────────────
+    'ind-dash':    () => indDash(),
   };
   const fn = pages[id];
   try {
@@ -5029,142 +5090,164 @@ function empDash(){
   // COURSE PROFILE PANEL (non-live)
   // ═══════════════════════════════════════════════════════
   const courseProfile=(cid,c)=>{
-    const sessions=c.sessions||[];
-    const isLive=c.status==='live';
-    // For live: show the live session as "in progress" with day breakdown
-    // For upcoming: show upcoming sessions with before mats
-    const relevantSes = isLive
-      ? sessions.filter(s=>s.sessionStatus==='live')
-      : sessions.filter(s=>s.sessionStatus==='upcoming');
-    const beforeMats=(relevantSes[0]?.mats||[]).filter(m=>m.vis==='before');
+    const allSes = c.sessions||[];
+    // Separate instructor-led sessions from self-learning
+    const instrSes  = allSes.filter(s=>s.learningMode==='session'||s.learningMode==='both'||!s.learningMode);
+    const elearnSes = allSes.filter(s=>s.learningMode==='elearning'||s.learningMode==='both');
+    // Self-learning content = all mats from elearning sessions (before+during)
+    const elearnMats= elearnSes.flatMap(s=>(s.mats||[]).filter(m=>m.vis==='before'||m.vis==='during'));
+    const elearnQuiz= elearnSes.flatMap(s=>s.quizzes||[]);
+    const elearnExam= elearnSes.find(s=>s.finalExam)?.finalExam||null;
+    // Also: if a session has learningMode=both, its mats can be used for self-learning
+    const bothSes   = allSes.filter(s=>s.learningMode==='both');
+    const allElearnMats = [...elearnMats, ...bothSes.flatMap(s=>(s.mats||[]).filter(m=>m.vis==='before'||m.vis==='during'))];
+    // Deduplicate by name
+    const uniqMats  = allElearnMats.filter((m,i,a)=>a.findIndex(x=>x.n===m.n)===i);
+    const hasSession = instrSes.length>0;
+    const hasElearn  = uniqMats.length>0||elearnQuiz.length>0||elearnExam;
+
+    const matBtn = m => m.type==='video'
+      ?`<button onclick="toast('Opening video…','b')" style="padding:5px 12px;background:rgba(220,38,38,.08);color:var(--red);border:1px solid rgba(220,38,38,.15);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">▶ Watch</button>`
+      :m.type==='pptx'
+        ?`<button onclick="toast('Opening slides…','b')" style="padding:5px 12px;background:rgba(29,78,216,.06);color:var(--blue);border:1px solid rgba(29,78,216,.15);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">📊 Open</button>`
+        :`<button onclick="toast('Downloading…','b')" style="padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:10px;">📥</button>`;
+
     return `
     <div style="background:var(--surface);border:2px solid var(--accent);border-radius:14px;overflow:hidden;margin-top:10px;animation:emp-in .2s ease;">
-      <div style="padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;">
-        <div style="flex:1;">
-          <div style="font-size:14px;font-weight:800;margin-bottom:4px;">${c.title}</div>
-          <div style="font-size:11px;color:var(--text2);line-height:1.5;">${c.desc}</div>
-        </div>
+
+      <!-- Header -->
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:13px;font-weight:800;">${c.title}</div>
         <button onclick="EMP_EXPANDED=null;showPage('emp-dash')" style="width:26px;height:26px;border:1px solid var(--border);background:var(--surface2);border-radius:6px;cursor:pointer;font-size:12px;flex-shrink:0;">✕</button>
       </div>
-      ${c.status==='completed'?`<div style="padding:12px 18px;background:rgba(22,163,74,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;"><span style="font-size:18px;">✅</span><div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--green);">Completed — Score ${c.score}%</div><div style="font-size:11px;color:var(--text2);">Certificate valid until ${fd(c.exp)}</div></div><button onclick="toast('Downloading…','g')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">🏅 Certificate</button></div>`:''}
-      ${c.status==='overdue'?`<div style="padding:12px 18px;background:rgba(220,38,38,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;"><span style="font-size:18px;">⚠️</span><div style="flex:1;font-size:12px;color:var(--red);font-weight:700;">Overdue — complete this course as soon as possible</div><button onclick="toast('Request submitted!','g')" style="padding:6px 14px;background:var(--red);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">Request Session</button></div>`:''}
-      ${sessions.length===0?`<div style="padding:16px 18px;font-size:12px;color:var(--text3);">No sessions scheduled yet. <button onclick="toast('Request submitted!','g')" style="margin-left:8px;padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">Request →</button></div>`:''}
-      ${sessions.map((s,si)=>{
-        const pct=Math.round(s.enrolled/s.seats*100);
-        const daysLeft=Math.ceil((new Date(s.days[0].date)-new Date())/86400000);
-        const lm = s.learningMode||'session'; // 'session' | 'elearning' | 'both'
-        const chosenMode = EMP_LEARN_MODE[s.id] || (lm==='both'?null:lm);
-        const hasBefore = (s.mats||[]).filter(m=>m.vis==='before');
 
-        // Learning mode selector — only for 'both' and not completed
-        const modePicker = (lm==='both' && s.sessionStatus!=='completed') ? `
-        <div style="margin-top:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">How would you like to take this course?</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div onclick="EMP_LEARN_MODE['${s.id}']='session';showPage('emp-dash')"
-              style="padding:12px;border:2px solid ${chosenMode==='session'?'var(--accent)':'var(--border)'};border-radius:9px;cursor:pointer;text-align:center;background:${chosenMode==='session'?'var(--accent-h)':'var(--surface)'};transition:all .14s;">
-              <div style="font-size:22px;margin-bottom:6px;">🗓</div>
-              <div style="font-size:12px;font-weight:700;color:${chosenMode==='session'?'var(--accent)':'var(--text2)'};">Attend Session</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px;">Live with instructor · ${s.days.length}-day${s.days.length>1?'s':''}</div>
-            </div>
-            <div onclick="EMP_LEARN_MODE['${s.id}']='elearning';showPage('emp-dash')"
-              style="padding:12px;border:2px solid ${chosenMode==='elearning'?'var(--blue)':'var(--border)'};border-radius:9px;cursor:pointer;text-align:center;background:${chosenMode==='elearning'?'rgba(29,78,216,.06)':'var(--surface)'};transition:all .14s;">
-              <div style="font-size:22px;margin-bottom:6px;">💻</div>
-              <div style="font-size:12px;font-weight:700;color:${chosenMode==='elearning'?'var(--blue)':'var(--text2)'};">Self-Learning</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px;">At your own pace · Online</div>
-            </div>
-          </div>
-        </div>` : lm==='both' && s.sessionStatus==='completed' ? '' :
-        `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:${lm==='elearning'?'rgba(29,78,216,.06)':'rgba(22,163,74,.05)'};border:1px solid ${lm==='elearning'?'rgba(29,78,216,.15)':'rgba(22,163,74,.15)'};">
-          <span style="font-size:16px;">${lm==='elearning'?'💻':'🗓'}</span>
-          <span style="font-size:11px;font-weight:700;color:${lm==='elearning'?'var(--blue)':'var(--green)'};">${lm==='elearning'?'Self-Learning (E-Learning)':'Instructor-Led Session'}</span>
-        </div>`;
+      ${c.status==='completed'?`<div style="padding:11px 18px;background:rgba(22,163,74,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;"><span>✅</span><div style="flex:1;font-size:12px;"><strong style="color:var(--green);">Completed — ${c.score}%</strong> · Exp ${fd(c.exp)}</div><button onclick="toast('Downloading…','g')" style="padding:5px 12px;background:var(--green);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">🏅 Cert</button></div>`:''}
+      ${c.status==='overdue'?`<div style="padding:11px 18px;background:rgba(220,38,38,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;"><span>⚠️</span><div style="flex:1;font-size:12px;color:var(--red);font-weight:700;">Overdue</div><button onclick="toast('Request submitted!','g')" style="padding:5px 12px;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">Request Session</button></div>`:''}
 
-        // E-learning materials (before/during) shown when chosen elearning or elearning only
-        const showElearn = lm==='elearning' || chosenMode==='elearning';
-        const elearnMats = (s.mats||[]).filter(m=>m.vis==='before'||m.vis==='during');
-        const eLearnBlock = showElearn && elearnMats.length ? `
-        <div style="margin-top:11px;border:1px solid var(--border);border-radius:9px;overflow:hidden;">
-          <div style="padding:9px 13px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;background:var(--surface2);">💻 E-Learning Materials</div>
-          ${elearnMats.map(m=>`
-          <div style="display:flex;align-items:center;gap:9px;padding:9px 13px;border-bottom:1px solid var(--border);last-child:border-none;">
-            <span style="font-size:16px;">${m.ic}</span>
-            <div style="flex:1;"><div style="font-size:11px;font-weight:700;">${m.n}</div><div style="font-size:9px;color:var(--text3);">${m.type.toUpperCase()} · ${m.sz}</div></div>
-            ${m.type==='video'?`<button onclick="toast('Opening video…','b')" style="padding:5px 11px;background:rgba(220,38,38,.08);color:var(--red);border:1px solid rgba(220,38,38,.15);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">▶ Watch</button>`:
-              m.type==='pptx'?`<button onclick="toast('Opening slides…','b')" style="padding:5px 11px;background:rgba(29,78,216,.06);color:var(--blue);border:1px solid rgba(29,78,216,.15);border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">📊 Open</button>`:
-              `<button onclick="toast('Downloading…','b')" style="padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:10px;">📥</button>`}
-          </div>`).join('')}
-          ${s.quizzes?.length?`<div style="padding:9px 13px;background:rgba(107,45,94,.03);">
-            ${s.quizzes.map(qz=>`
-            <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--accent-h);border:1px solid rgba(107,45,94,.15);border-radius:8px;">
-              <span>📝</span><div style="flex:1;font-size:11px;font-weight:700;">${qz.title} <span style="font-weight:400;color:var(--text2);">· ${qz.qs.length} Qs · ${qz.marks} marks</span></div>
-              <button onclick="EMP_LIVE_TAB='quiz';EMP_QUIZ_IDX=0;EMP_QUIZ_ANSWERS={};EMP_QUIZ_DONE=false;EMP_EXPANDED='${cid}';EMP_SHOW_PROFILE=false;showPage('emp-dash')" style="padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">Take Quiz →</button>
-            </div>`).join('')}
-          </div>`:''}
-        </div>` : '';
-
-        return `<div style="padding:14px 18px;${si<sessions.length-1?'border-bottom:1px solid var(--border)':''}">
-          <div style="display:flex;align-items:flex-start;gap:12px;">
-            <div style="text-align:center;width:42px;flex-shrink:0;">
-              <div style="font-size:20px;font-weight:800;color:${s.sessionStatus==='completed'?'var(--green)':'var(--accent)'};line-height:1;">${s.sessionStatus==='completed'?'✓':new Date(s.days[0].date).getDate()}</div>
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;">${s.sessionStatus==='completed'?'Done':new Date(s.days[0].date).toLocaleString('en',{month:'short'})}</div>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;align-items:center;">
-                <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:${s.type==='Online'?'rgba(29,78,216,.08)':s.type==='Hybrid'?'var(--accent-h)':'rgba(22,163,74,.08)'};color:${s.type==='Online'?'var(--blue)':s.type==='Hybrid'?'var(--accent)':'var(--green)'};">${s.type}</span>
-                ${lm==='both'?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(107,45,94,.08);color:var(--accent);">Session + E-Learning</span>`:''}
-                ${s.sessionStatus==='completed'?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(22,163,74,.08);color:var(--green);">✓ Completed</span>`:''}
-                ${s.days.length>1?`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:var(--surface3);color:var(--text2);">${s.days.length}-day</span>`:''}
-              </div>
-              <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:9px;">
-                ${s.days.map((d,di)=>`
-                <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${d.status==='done'?'rgba(22,163,74,.05)':'var(--surface2)'};border:1px solid ${d.status==='done'?'rgba(22,163,74,.2)':'var(--border)'};border-radius:7px;">
-                  <span style="font-size:12px;">${d.status==='done'?'✅':d.status==='live'?'🟢':'📅'}</span>
-                  <span style="font-size:11px;font-weight:600;">${d.label}</span>
-                  <span style="font-size:11px;color:var(--text2);">${fd(d.date)}</span>
-                  <span style="font-size:10px;color:var(--text2);">⏰ ${d.ts}–${d.te}</span>
-                  <span style="margin-left:auto;font-size:10px;font-weight:600;color:${d.status==='done'?'var(--green)':d.status==='live'?'var(--green)':'var(--text3)'};">${d.status==='done'?'Attended':d.status==='live'?'Live Now':'—'}</span>
-                </div>`).join('')}
-              </div>
-              <div style="font-size:11px;color:var(--text2);">📍 ${s.loc} &nbsp;·&nbsp; 👨‍🏫 ${s.instructor}</div>
-              <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
-                <div style="width:90px;height:3px;background:var(--surface3);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${pct>=90?'var(--red)':'var(--accent)'};border-radius:3px;"></div></div>
-                <span style="font-size:10px;color:var(--text2);">${s.enrolled}/${s.seats} enrolled</span>
-                ${s.sessionStatus==='upcoming'?`<span style="font-size:10px;color:${daysLeft<=7?'var(--orange)':'var(--text3)'};">${daysLeft===0?'Today':daysLeft+'d away'}</span>`:''}
-              </div>
-              ${s.sessionStatus==='completed'?`
-              <div style="margin-top:9px;padding:9px 12px;background:rgba(22,163,74,.05);border:1px solid rgba(22,163,74,.15);border-radius:8px;font-size:11px;display:flex;gap:12px;">
-                <span>📊 Quiz: <strong>${s.quizScore||'—'}%</strong></span>
-                <span>🏆 Exam: <strong>${s.examScore||'—'}%</strong></span>
-                <span>📅 Attendance: <strong>${s.attendanceDays}/${s.days.length} days</strong></span>
-              </div>`:''}
-              ${modePicker}
-              ${eLearnBlock}
-            </div>
-            <div style="flex-shrink:0;">
-              ${s.sessionStatus==='upcoming'&&(chosenMode==='session'||lm==='session')?
-                s.enrolled>=s.seats?`<button disabled style="padding:7px 14px;background:var(--surface3);color:var(--text3);border:none;border-radius:7px;font-size:11px;cursor:not-allowed;">Full</button>`:
-                `<button onclick="toast('Registered!','g')" style="padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">Register</button>`:''}
-              ${s.sessionStatus==='live'?`<button onclick="EMP_SHOW_PROFILE=false;EMP_LIVE_TAB='materials';showPage('emp-dash')" style="padding:7px 16px;background:#16a34a;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">🟢 Enter</button>`:''}
-              ${s.sessionStatus==='completed'?`<button onclick="toast('Opening record…','b')" style="padding:7px 12px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;">Record</button>`:''}
-            </div>
-          </div>
-        </div>`;
-      }).join('')}
-      ${beforeMats.length?`
-      <div style="padding:13px 18px;background:var(--surface2);border-top:1px solid var(--border);">
-        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;">📁 Pre-Session Materials — Available Now</div>
-        <div style="display:flex;flex-direction:column;gap:7px;">
-          ${beforeMats.map(m=>`
-          <div style="display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
-            <span style="font-size:16px;">${m.ic}</span>
-            <div style="flex:1;"><div style="font-size:12px;font-weight:700;">${m.n}</div><div style="font-size:10px;color:var(--text3);">${m.type.toUpperCase()} · ${m.sz}</div></div>
-            <button onclick="toast('Downloading…','b')" style="padding:6px 13px;border:1px solid var(--border);background:var(--surface2);border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;">📥 Download</button>
-          </div>`).join('')}
+      <!-- ══ SECTION 1: INSTRUCTOR-LED SESSIONS ══ -->
+      ${hasSession?`
+      <div style="border-bottom:${hasElearn?'1px solid var(--border)':'none'};">
+        <div style="padding:11px 18px 0;display:flex;align-items:center;gap:9px;">
+          <span style="font-size:16px;">🗓</span>
+          <div style="font-size:12px;font-weight:800;">Instructor-Led Sessions</div>
+          <span style="margin-left:auto;font-size:10px;color:var(--text3);">${instrSes.length} session${instrSes.length>1?'s':''}</span>
         </div>
-      </div>`:''}
+        ${instrSes.map((s,si)=>{
+          const lm=s.learningMode||'session';
+          const pct=Math.round(s.enrolled/s.seats*100);
+          const dl=Math.ceil((new Date(s.days[0].date)-new Date())/86400000);
+          const bMats=(s.mats||[]).filter(m=>m.vis==='before');
+          return `
+          <div style="padding:12px 18px;${si<instrSes.length-1?'border-bottom:1px solid var(--border)':''}">
+            <div style="display:flex;align-items:flex-start;gap:11px;">
+              <!-- Date badge -->
+              <div style="text-align:center;width:38px;flex-shrink:0;">
+                <div style="font-size:19px;font-weight:800;color:${s.sessionStatus==='completed'?'var(--green)':s.sessionStatus==='live'?'#16a34a':'var(--accent)'};line-height:1;">${s.sessionStatus==='completed'?'✓':s.sessionStatus==='live'?'🟢':new Date(s.days[0].date).getDate()}</div>
+                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;">${s.sessionStatus==='completed'?'Done':s.sessionStatus==='live'?'Live':new Date(s.days[0].date).toLocaleString('en',{month:'short'})}</div>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <!-- Badges -->
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;">
+                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:${s.type==='Online'?'rgba(29,78,216,.08)':s.type==='Hybrid'?'var(--accent-h)':'rgba(22,163,74,.08)'};color:${s.type==='Online'?'var(--blue)':s.type==='Hybrid'?'var(--accent)':'var(--green)'};">${s.type}</span>
+                  ${s.days.length>1?`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:var(--surface3);color:var(--text2);">${s.days.length}-day</span>`:''}
+                  ${s.sessionStatus==='completed'?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(22,163,74,.08);color:var(--green);">✓ Completed</span>`:''}
+                  ${s.sessionStatus==='live'?`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(22,163,74,.1);color:var(--green);">🟢 Live Now</span>`:''}
+                </div>
+                <!-- Days -->
+                <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
+                  ${s.days.map(d=>`
+                  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${d.status==='done'?'rgba(22,163,74,.04)':'var(--surface2)'};border:1px solid ${d.status==='done'?'rgba(22,163,74,.18)':'var(--border)'};border-radius:7px;">
+                    <span style="font-size:11px;">${d.status==='done'?'✅':d.status==='live'?'🟢':'📅'}</span>
+                    <span style="font-size:11px;font-weight:600;">${d.label}</span>
+                    <span style="font-size:11px;color:var(--text2);">${fd(d.date)}</span>
+                    <span style="font-size:10px;color:var(--text2);">⏰ ${d.ts}–${d.te}</span>
+                    <span style="margin-left:auto;font-size:10px;font-weight:600;color:${d.status==='done'?'var(--green)':d.status==='live'?'var(--green)':'var(--text3)'};">${d.status==='done'?'Attended':d.status==='live'?'Live Now':'—'}</span>
+                  </div>`).join('')}
+                </div>
+                <div style="font-size:11px;color:var(--text2);margin-bottom:7px;">📍 ${s.loc} &nbsp;·&nbsp; 👨‍🏫 ${s.instructor}</div>
+                <!-- Enrollment bar -->
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:${s.sessionStatus==='completed'?'8':'0'}px;">
+                  <div style="width:80px;height:3px;background:var(--surface3);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${pct>=90?'var(--red)':'var(--accent)'};border-radius:3px;"></div></div>
+                  <span style="font-size:10px;color:var(--text2);">${s.enrolled}/${s.seats}</span>
+                  ${s.sessionStatus==='upcoming'?`<span style="font-size:10px;color:${dl<=7?'var(--orange)':'var(--text3)'};">${dl===0?'Today':dl+'d away'}</span>`:''}
+                </div>
+                ${s.sessionStatus==='completed'?`<div style="display:flex;gap:12px;padding:8px 11px;background:rgba(22,163,74,.05);border:1px solid rgba(22,163,74,.15);border-radius:8px;font-size:11px;color:var(--text2);">
+                  <span>📊 Quiz: <strong>${s.quizScore||'—'}%</strong></span>
+                  <span>🏆 Exam: <strong>${s.examScore||'—'}%</strong></span>
+                  <span>📅 <strong>${s.attendanceDays}/${s.days.length} days</strong></span>
+                </div>`:''}
+                ${bMats.length&&s.sessionStatus!=='completed'?`
+                <div style="margin-top:9px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                  <div style="padding:7px 12px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;background:var(--surface2);color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">📁 Pre-Session Materials</div>
+                  ${bMats.map(m=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);">
+                    <span>${m.ic}</span><div style="flex:1;font-size:11px;font-weight:600;">${m.n}</div>${matBtn(m)}
+                  </div>`).join('')}
+                </div>`:''}
+              </div>
+              <!-- Action -->
+              <div style="flex-shrink:0;margin-top:2px;">
+                ${s.sessionStatus==='upcoming'?s.enrolled>=s.seats?
+                  `<button disabled style="padding:7px 12px;background:var(--surface3);color:var(--text3);border:none;border-radius:7px;font-size:11px;cursor:not-allowed;">Full</button>`:
+                  `<button onclick="toast('Registered!','g')" style="padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">Register</button>`:''}
+                ${s.sessionStatus==='live'?`<button onclick="EMP_SHOW_PROFILE=false;EMP_LIVE_TAB='materials';showPage('emp-dash')" style="padding:7px 14px;background:#16a34a;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">🟢 Enter</button>`:''}
+                ${s.sessionStatus==='completed'?`<button onclick="toast('Opening record…','b')" style="padding:7px 10px;border:1px solid var(--border);background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;">Record</button>`:''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+
+      <!-- ══ SECTION 2: SELF-LEARNING ══ -->
+      ${hasElearn?`
+      <div>
+        <div style="padding:11px 18px;display:flex;align-items:center;gap:9px;${hasSession?'border-top:none':''} ">
+          <span style="font-size:16px;">💻</span>
+          <div style="font-size:12px;font-weight:800;">Self-Learning</div>
+          <span style="font-size:10px;color:var(--text2);margin-left:4px;">· At your own pace</span>
+        </div>
+        <!-- Materials -->
+        ${uniqMats.length?`<div style="display:flex;flex-direction:column;gap:0;border-top:1px solid var(--border);">
+          ${uniqMats.map(m=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--border);">
+            <div style="width:32px;height:32px;border-radius:8px;background:${m.type==='video'?'rgba(220,38,38,.08)':m.type==='pptx'?'rgba(29,78,216,.08)':'var(--accent-h)'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${m.ic}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:700;">${m.n}</div>
+              <div style="font-size:10px;color:var(--text3);">${m.type.toUpperCase()} · ${m.sz}</div>
+            </div>
+            ${matBtn(m)}
+          </div>`).join('')}
+        </div>`:''}
+        <!-- Quizzes -->
+        ${elearnQuiz.length?`<div style="padding:10px 18px;${uniqMats.length?'border-top:1px solid var(--border)':''}">
+          ${elearnQuiz.map(qz=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--accent-h);border:1.5px solid rgba(107,45,94,.15);border-radius:9px;margin-bottom:7px;">
+            <span style="font-size:18px;">📝</span>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;">${qz.title}</div>
+              <div style="font-size:10px;color:var(--text2);">${qz.qs.length} questions · ${qz.marks} marks</div>
+            </div>
+            ${EMP_QUIZ_DONE?`<span style="font-size:11px;font-weight:700;color:var(--green);">✓ Done</span>`:
+            `<button onclick="EMP_QUIZ_IDX=0;EMP_QUIZ_ANSWERS={};EMP_QUIZ_DONE=false;EMP_LIVE_TAB='quiz';EMP_SHOW_PROFILE=true;EMP_EXPANDED='${cid}';showPage('emp-dash')" style="padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">Take Quiz →</button>`}
+          </div>`).join('')}
+        </div>`:''}
+        <!-- Final exam -->
+        ${elearnExam?`<div style="padding:10px 18px;border-top:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(120deg,rgba(107,45,94,.07),transparent);border:1.5px solid rgba(107,45,94,.18);border-radius:9px;">
+            <div style="width:36px;height:36px;border-radius:9px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">🏆</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:800;">${elearnExam.name}</div>
+              <div style="font-size:10px;color:var(--text2);">${elearnExam.qs.length} questions · ${elearnExam.totalMarks} marks · Pass: ${elearnExam.pm}%</div>
+            </div>
+            ${EMP_EXAM_DONE[cid]?`<span style="font-size:11px;font-weight:700;color:var(--green);">✓ Submitted</span>`:
+            `<button onclick="EMP_LIVE_TAB='exam';EMP_EXAM_ANSWERS={};EMP_SHOW_PROFILE=true;EMP_EXPANDED='${cid}';showPage('emp-dash')" style="padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;">Start Exam →</button>`}
+          </div>
+        </div>`:''}
+      </div>` : ''}
+
+      ${!hasSession&&!hasElearn?`<div style="padding:16px 18px;font-size:12px;color:var(--text3);">No sessions or content available yet.<br><button onclick="toast('Request submitted!','g')" style="margin-top:7px;padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;">+ Request</button></div>`:''}
     </div>`;
   };
+
 
   // ═══════════════════════════════════════════════════════
   // MAIN CONTROL PANEL PAGE
@@ -5320,13 +5403,7 @@ function empDash(){
             </div>`:''}
           </div>`;
         } else {
-          expandContent=`
-          <div style="padding:12px 18px;border-top:1px solid var(--border);">
-            <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px;">${c.desc}</div>
-            ${isOver?`<div style="display:flex;align-items:center;gap:9px;padding:9px 13px;background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.15);border-radius:8px;"><span>⚠️</span><span style="flex:1;font-size:11px;color:var(--red);font-weight:600;">Overdue — no session scheduled yet</span><button onclick="toast('Request submitted!','g')" style="padding:5px 12px;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">Request</button></div>`:''}
-            ${isLive?`<div style="display:flex;align-items:center;gap:9px;padding:9px 13px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.2);border-radius:8px;"><span style="animation:ep-pulse 1.5s infinite;display:inline-block;">🟢</span><span style="flex:1;font-size:11px;font-weight:700;color:var(--green);">Session in progress</span><button onclick="EMP_SHOW_PROFILE=true;EMP_EXPANDED='${cid}';showPage('emp-dash')" style="padding:5px 12px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">View →</button></div>`:''}
-            ${!isOver&&!isLive&&c.sessions.length>0?`<div style="font-size:11px;color:var(--text2);">${c.sessions.length} session${c.sessions.length>1?'s':''} available — <button onclick="EMP_SHOW_PROFILE=true;EMP_EXPANDED='${cid}';showPage('emp-dash')" style="background:none;border:none;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;padding:0;">View sessions →</button></div>`:`<div style="font-size:11px;color:var(--text3);">No sessions available yet.</div>`}
-          </div>`;
+          expandContent = courseProfile(cid,c);
         }
       }
 
@@ -5373,44 +5450,7 @@ function empDash(){
       const tagLbl=isDone?'✓ Done':isLive?'🟢 Live':'Upcoming';
       const borderL=isDone?'var(--green)':isLive?'#16a34a':'var(--accent)';
 
-      const expandContent = isExp ? `
-      <div style="border-top:1px solid var(--border);">
-        ${ses?.days.map((day,di)=>{
-          const pastDay=day.status==='done';
-          const liveDay=day.status==='live';
-          const upDay  =!pastDay&&!liveDay;
-          return `
-          <div style="border-bottom:1px solid var(--border);">
-            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:${liveDay?'rgba(22,163,74,.03)':pastDay?'transparent':'var(--surface2)'};">
-              <span style="font-size:16px;flex-shrink:0;">${pastDay?'✅':liveDay?'🟢':'📅'}</span>
-              <div style="flex:1;">
-                <div style="font-size:12px;font-weight:700;">${day.label} — ${fd(day.date)}</div>
-                <div style="font-size:10px;color:var(--text2);">⏰ ${day.ts}–${day.te}</div>
-              </div>
-              <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:${pastDay?'rgba(22,163,74,.08)':liveDay?'rgba(22,163,74,.12)':'var(--surface3)'};color:${pastDay?'var(--green)':liveDay?'var(--green)':'var(--text3)'};">${pastDay?'Attended':liveDay?'Live Now':'Upcoming'}</span>
-              ${liveDay?`<button onclick="EMP_SHOW_PROFILE=false;EMP_LIVE_TAB='materials';EMP_EXPANDED='${cid}';showPage('emp-dash')" style="padding:5px 13px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;">Enter →</button>`:''}
-            </div>
-          </div>`;
-        }).join('')||''}
-        ${isDone&&ses?`
-        <div style="padding:11px 18px;background:rgba(22,163,74,.02);">
-          <div style="display:flex;gap:12px;font-size:11px;color:var(--text2);align-items:center;">
-            <span>📊 Quiz: <strong>${ses.quizScore}%</strong></span>
-            <span>🏆 Exam: <strong>${ses.examScore}%</strong></span>
-            <span>📅 Attendance: <strong>${ses.attendanceDays}/${ses.days.length} days</strong></span>
-            <button onclick="toast('Downloading certificate…','g')" style="margin-left:auto;padding:5px 12px;background:var(--green);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:10px;font-weight:700;">🏅 Certificate</button>
-          </div>
-        </div>`:''}
-        ${ses?.mats?.filter(m=>m.vis==='before').length?`
-        <div style="padding:11px 18px;border-top:1px solid var(--border);">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">📁 Pre-Session Materials</div>
-          ${ses.mats.filter(m=>m.vis==='before').map(m=>`
-          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
-            <span>${m.ic}</span><div style="flex:1;font-size:11px;font-weight:600;">${m.n}</div>
-            <button onclick="toast('Downloading…','b')" style="padding:4px 11px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:10px;">📥</button>
-          </div>`).join('')}
-        </div>`:''}
-      </div>` : '';
+      const expandContent = isExp ? courseProfile(cid,c) : '';
 
       return `
       <div style="border-bottom:1px solid var(--border);">
@@ -5463,7 +5503,7 @@ function empDash(){
   <div style="border:1.5px dashed var(--border);border-radius:14px;padding:18px 22px;display:flex;align-items:center;gap:14px;">
     <div style="width:38px;height:38px;border-radius:10px;background:rgba(22,163,74,.08);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">➕</div>
     <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Need a specific training?</div><div style="font-size:11px;color:var(--text2);">Submit a request and your manager will review it.</div></div>
-    <button onclick="toast('Request submitted!','g')" style="padding:10px 22px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">Request training →</button>
+    <button onclick="MKT_EMP_REQUESTS.push({id:'ER'+Date.now(),empName:'Nora Al-Qahtani',empRole:'Safety Officer',courseTitle:'Custom Training Request',note:'Requested from employee Control Panel',status:'pending',date:new Date().toISOString()});toast('Request sent to your company!','g')" style="padding:10px 22px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;">Request training →</button>
   </div>
 
 </div>`;
@@ -7395,6 +7435,1020 @@ function submitExam() {
 
   showToast(pass?'Exam submitted — You passed! 🏆':'Exam submitted — Grade recorded', pass?'g':'o');
 }
+
+// ══════════════════════════════════════════════════════════
+//  MARKETPLACE — Providers / Companies / Individuals
+// ══════════════════════════════════════════════════════════
+
+// ── Shared catalog: Category > Sub-category ──────────────
+const MKT_CATALOG = {
+  safety: { label:'Safety', icon:'🦺', subs: {
+    iso45001: { label:'ISO 45001 (OH&S Management)' },
+  }},
+};
+
+// ── Approved + pending course listings from providers ─────
+let MKT_LISTINGS = [
+  {
+    id:'L001', providerId:'P01', category:'safety', sub:'iso45001',
+    title:'ISO 45001:2018 Awareness Training', status:'approved',
+    deliveryModes:['online','onsite'], duration:'1 day (8 hrs)',
+    price:450, currency:'SAR', priceUnit:'per participant',
+    minSeats:5, maxSeats:30, language:'Arabic / English',
+    desc:'Introductory awareness course covering the structure, clauses, and intent of ISO 45001:2018 for Occupational Health & Safety Management Systems.',
+    rating:4.7, reviews:38, completedSessions:21,
+  },
+  {
+    id:'L002', providerId:'P02', category:'safety', sub:'iso45001',
+    title:'ISO 45001 Internal Auditor Course', status:'approved',
+    deliveryModes:['online'], duration:'2 days (16 hrs)',
+    price:1200, currency:'SAR', priceUnit:'per participant',
+    minSeats:3, maxSeats:20, language:'English',
+    desc:'Equip participants with the skills to plan, conduct, and report internal audits against ISO 45001 requirements.',
+    rating:4.9, reviews:52, completedSessions:34,
+  },
+  {
+    id:'L003', providerId:'P03', category:'safety', sub:'iso45001',
+    title:'ISO 45001 Lead Implementer', status:'approved',
+    deliveryModes:['onsite'], duration:'5 days (40 hrs)',
+    price:4800, currency:'SAR', priceUnit:'per participant',
+    minSeats:6, maxSeats:15, language:'Arabic',
+    desc:'Comprehensive implementer-level training to design, deploy, and maintain an OH&S management system aligned with ISO 45001.',
+    rating:4.6, reviews:19, completedSessions:9,
+  },
+  {
+    id:'L004', providerId:'P01', category:'safety', sub:'iso45001',
+    title:'ISO 45001 Lead Auditor (Certified)', status:'approved',
+    deliveryModes:['online','onsite'], duration:'5 days (40 hrs)',
+    price:5200, currency:'SAR', priceUnit:'per participant',
+    minSeats:4, maxSeats:18, language:'English',
+    desc:'CQI/IRCA-aligned lead auditor course preparing participants to lead third-party audits of OH&S management systems.',
+    rating:4.8, reviews:64, completedSessions:41,
+  },
+  {
+    id:'L005', providerId:'P04', category:'safety', sub:'iso45001',
+    title:'ISO 45001 Awareness — Self-Paced', status:'pending',
+    deliveryModes:['online'], duration:'4 hours (e-learning)',
+    price:180, currency:'SAR', priceUnit:'per participant',
+    minSeats:1, maxSeats:9999, language:'Arabic',
+    desc:'On-demand e-learning module covering ISO 45001 fundamentals — ideal for individuals and small teams.',
+    rating:0, reviews:0, completedSessions:0,
+  },
+];
+
+const MKT_PROVIDERS = {
+  P01:{ name:'TrainPro Co.', type:'company', logo:'🏢', verified:true, founded:2014, location:'Riyadh, KSA', accreditations:['CQI/IRCA','IOSH'], desc:'Leading regional provider of management-system and HSE certification training.' },
+  P02:{ name:'SafeCert Academy', type:'company', logo:'🏛️', verified:true, founded:2018, location:'Jeddah, KSA', accreditations:['Exemplar Global'], desc:'Specialized academy for OH&S, quality, and environmental management certifications.' },
+  P03:{ name:'Gulf HSE Institute', type:'company', logo:'🏗️', verified:true, founded:2011, location:'Dammam, KSA', accreditations:['NEBOSH','IOSH'], desc:'Industrial-focused HSE training provider serving oil & gas and manufacturing sectors.' },
+  P04:{ name:'Eng. Yousef Al-Harbi', type:'individual', logo:'👤', verified:false, founded:2021, location:'Riyadh, KSA', accreditations:['ISO 45001 Lead Auditor'], desc:'Independent freelance HSE consultant and certified trainer.' },
+};
+
+// ── Custom requests posted by buyers (company/individual) ──
+let MKT_CUSTOM_REQUESTS = [
+  {
+    id:'CR01', buyerId:'B01', buyerType:'company', buyerName:'Al-Rashid Industries',
+    category:'safety', sub:'iso45001', courseTitle:'ISO 45001 Internal Auditor',
+    deliveryMode:'onsite', seats:12, preferredDates:'July 2026', location:'Riyadh, KSA',
+    notes:'Need on-site delivery at our facility, Arabic preferred, includes practical audit simulation.',
+    status:'open', offers:2, postedDaysAgo:2,
+  },
+  {
+    id:'CR02', buyerId:'B02', buyerType:'individual', buyerName:'Faisal Al-Dossari',
+    category:'safety', sub:'iso45001', courseTitle:'ISO 45001 Awareness',
+    deliveryMode:'online', seats:1, preferredDates:'Flexible',  location:'Remote',
+    notes:'Looking for a budget-friendly evening/weekend course.',
+    status:'open', offers:3, postedDaysAgo:1,
+  },
+];
+
+// ── Enrollment orders ───────────────────────────────────────
+let MKT_ORDERS = [
+  { id:'O001', listingId:'L001', buyerId:'B01', buyerType:'company', buyerName:'Al-Rashid Industries', seats:12, status:'confirmed', date:'2026-07-08', total:5400 },
+  { id:'O002', listingId:'L002', buyerId:'B02', buyerType:'individual', buyerName:'Faisal Al-Dossari', seats:1, status:'pending', date:'2026-07-15', total:1200 },
+];
+
+function mktProviderListings(pid){ return MKT_LISTINGS.filter(l=>l.providerId===pid); }
+function mktDeliveryBadge(mode){
+  return mode==='online' ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(29,78,216,.08);color:var(--blue);">💻 Online</span>`
+       : mode==='onsite' ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(22,163,74,.08);color:var(--green);">🏢 On-site</span>` : '';
+}
+
+// ════════════════════════════════════════════════════════════
+//  PROVIDER PORTAL
+// ════════════════════════════════════════════════════════════
+
+// ══ EXTERNAL HUB — shared view state ══════════════════════
+let EXT_VIEW = 'home';     // home | catalog | course | custom | order
+let EXT_SEARCH = 'ISO 45001';
+let EXT_SELECTED_LISTING = null;
+let EXT_COMPARE = [];
+
+// ── Employee training requests directed to the company (External Hub) ──
+let MKT_EMP_REQUESTS = [
+  { id:'ER01', empName:'Nora Al-Qahtani', empRole:'Safety Officer', courseTitle:'ISO 45001 Internal Auditor', note:'Need this for my HSE certification path.', status:'pending', date:'2026-06-28' },
+  { id:'ER02', empName:'Khalid Al-Anazi', empRole:'Site Supervisor', courseTitle:'ISO 45001 Lead Implementer', note:'Required for upcoming project audit.', status:'pending', date:'2026-06-25' },
+];
+
+// Track which listing -> rollout method chosen (invite / self-register / hybrid) + enrolled employee count
+let MKT_ROLLOUTS = {}; // {orderId: {method:'invite'|'self'|'hybrid', invited:[], seatsTotal, seatsFilled}}
+
+function extGoto(view, extra){
+  EXT_VIEW = view;
+  if(extra) Object.assign(window, extra);
+  showPage(currentRole==='individual' ? 'ind-dash' : 'buy-dash');
+}
+
+// ════════════════════════════════════════════════════════════
+//  COMPANY / INDIVIDUAL — EXTERNAL TRAINING HUB (single page)
+// ════════════════════════════════════════════════════════════
+function buyDash(){ return extHub('company'); }
+function indDash(){ return extHub('individual'); }
+
+function extHub(kind){
+  const isInd = kind==='individual';
+  const bid = isInd?'B02':'B01';
+  const buyerName = isInd?'Faisal Al-Dossari':'Al-Rashid Industries';
+  const myOrders = MKT_ORDERS.filter(o=>o.buyerId===bid);
+  const myReqs   = MKT_CUSTOM_REQUESTS.filter(r=>r.buyerId===bid);
+  const pendingEmpReqs = !isInd ? MKT_EMP_REQUESTS.filter(r=>r.status==='pending') : [];
+
+  // ── COURSE DETAIL (provider comparison happens inline in catalog) ──
+  if(EXT_VIEW==='course' && EXT_SELECTED_LISTING){
+    return extCourseDetail(EXT_SELECTED_LISTING, isInd);
+  }
+  // ── ORDER ROLLOUT (post-enrollment: invite/self/hybrid) ──
+  if(EXT_VIEW==='order' && EXT_SELECTED_LISTING){
+    return extOrderRollout(EXT_SELECTED_LISTING, isInd);
+  }
+
+  let body = '';
+
+  // ═══ CATALOG VIEW ═══
+  if(EXT_VIEW==='catalog'){
+    const results = MKT_LISTINGS.filter(l=>l.status==='approved' && (EXT_SEARCH? l.title.toLowerCase().includes(EXT_SEARCH.toLowerCase())||true : true));
+    body = `
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;position:relative;">
+        <input class="form-input" value="${EXT_SEARCH}" placeholder="Search courses, e.g. ISO 45001..." oninput="EXT_SEARCH=this.value" onkeypress="if(event.key==='Enter'){extGoto('catalog')}" style="padding-left:38px;">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;">🔍</span>
+      </div>
+      <select class="form-input" style="max-width:150px;"><option>🦺 Safety</option></select>
+      <select class="form-input" style="max-width:230px;"><option>ISO 45001 (OH&S Mgmt)</option></select>
+      <button class="btn btn-primary" onclick="extGoto('catalog')">Search</button>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px;">📁 Safety → ISO 45001 — ${results.length} provider${results.length!==1?'s':''} found</div>
+
+    ${EXT_COMPARE.length>0?`
+    <div style="background:var(--accent-h);border:1.5px solid rgba(107,45,94,.2);border-radius:11px;padding:13px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:12px;font-weight:700;">⚖️ ${EXT_COMPARE.length} course${EXT_COMPARE.length>1?'s':''} selected to compare</div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-sm btn-primary" onclick="toast('Comparison view coming soon','b')">Compare →</button><button class="btn btn-sm btn-outline" onclick="EXT_COMPARE=[];extGoto('catalog')">Clear</button></div>
+    </div>`:''}
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+    ${results.map(l=>{
+      const p=MKT_PROVIDERS[l.providerId];
+      const checked=EXT_COMPARE.includes(l.id);
+      return `
+      <div style="background:var(--surface);border:1.5px solid ${checked?'var(--accent)':'var(--border)'};border-radius:12px;padding:16px;cursor:pointer;transition:border-color .13s;" onclick="event.target.tagName!=='INPUT' && (EXT_SELECTED_LISTING='${l.id}',extGoto('course'))">
+        <div style="display:flex;align-items:flex-start;gap:13px;">
+          <label onclick="event.stopPropagation()" style="margin-top:2px;"><input type="checkbox" ${checked?'checked':''} onchange="if(this.checked){EXT_COMPARE.push('${l.id}')}else{EXT_COMPARE=EXT_COMPARE.filter(x=>x!=='${l.id}')};extGoto('catalog')" style="width:15px;height:15px;accent-color:var(--accent);"></label>
+          <div style="width:42px;height:42px;border-radius:10px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${p.logo}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px;">
+              <span style="font-size:13px;font-weight:800;">${l.title}</span>
+              ${p.verified?`<span style="font-size:10px;color:var(--green);font-weight:700;">✓ Verified</span>`:''}
+            </div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:7px;">By <strong>${p.name}</strong> · ${p.location}</div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
+              ${l.deliveryModes.map(mktDeliveryBadge).join('')}
+              <span style="font-size:10px;color:var(--text2);">⏱ ${l.duration}</span>
+              ${l.rating>0?`<span style="font-size:10px;color:var(--orange);">★ ${l.rating} (${l.reviews})</span>`:`<span style="font-size:10px;color:var(--text3);">New</span>`}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:18px;font-weight:800;color:var(--accent);">${l.price.toLocaleString()}</div>
+            <div style="font-size:9px;color:var(--text2);">${l.currency} ${l.priceUnit}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    </div>
+    <div style="margin-top:18px;padding:16px;border:1.5px dashed var(--border);border-radius:11px;text-align:center;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:5px;">Can't find what you need?</div>
+      <button class="btn btn-primary" onclick="extGoto('custom')">+ Post Custom Request</button>
+    </div>`;
+
+  // ═══ CUSTOM REQUEST FORM ═══
+  } else if(EXT_VIEW==='custom'){
+    body = `
+    <div style="max-width:640px;">
+      <div style="font-size:14px;font-weight:800;margin-bottom:4px;">✏️ Post a Custom Request</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:16px;">Approved providers in this category get notified and send you offers.</div>
+      <div class="fg"><label class="fl">Category</label><select class="form-input"><option>Safety</option></select></div>
+      <div class="fg"><label class="fl">Sub-category</label><select class="form-input"><option>ISO 45001 (OH&S Management)</option></select></div>
+      <div class="fg"><label class="fl">Course Title (optional)</label><input class="form-input" placeholder="e.g. ISO 45001 Internal Auditor"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label class="fl">Delivery Mode</label><select class="form-input"><option value="onsite">🏢 On-site</option><option value="online">💻 Online</option><option value="both">Either</option></select></div>
+        <div class="fg"><label class="fl">${isInd?'Participants':'Seats'}</label><input class="form-input" type="number" value="${isInd?1:5}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg"><label class="fl">Preferred Dates</label><input class="form-input" placeholder="e.g. July 2026"></div>
+        <div class="fg"><label class="fl">${isInd?'City':'Site Location'}</label><input class="form-input" placeholder="Riyadh, KSA"></div>
+      </div>
+      <div class="fg"><label class="fl">Notes</label><textarea class="form-input" rows="3" placeholder="Language, certification body, budget…"></textarea></div>
+      <button class="btn btn-primary" onclick="toast('Custom request posted!','g');extGoto('home')">Post Request →</button>
+    </div>`;
+
+  // ═══ HOME / DASHBOARD ═══
+  } else {
+    const totalSeatsWanted = myOrders.reduce((a,o)=>a+(MKT_ROLLOUTS[o.id]?.seatsTotal||o.seats),0);
+    const totalSeatsFilled = myOrders.reduce((a,o)=>a+(MKT_ROLLOUTS[o.id]?.seatsFilled||0),0);
+    body = `
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+      ${[
+        {l:'Active Orders', v:myOrders.length, c:'var(--accent)', ic:'📋'},
+        {l: isInd?'Enrolled':'Seats Filled', v: isInd? myOrders.length : `${totalSeatsFilled}/${totalSeatsWanted}`, c:'var(--green)', ic:'👥'},
+        {l:'Open Requests', v:myReqs.filter(r=>r.status==='open').length, c:'var(--orange)', ic:'✏️'},
+        {l:'Total Spent',   v:myOrders.reduce((a,o)=>a+o.total,0).toLocaleString()+' SAR', c:'var(--blue)', ic:'💰'},
+      ].map(s=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:15px 17px;border-top:3px solid ${s.c};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;"><span style="font-size:11px;color:var(--text2);">${s.l}</span><span style="font-size:16px;">${s.ic}</span></div>
+        <div style="font-size:21px;font-weight:800;color:${s.c};">${s.v}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- Quick search -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;">🔍 Find Training</div>
+      <div style="display:flex;gap:9px;">
+        <input class="form-input" id="ext-q" placeholder="e.g. ISO 45001" style="flex:1;">
+        <button class="btn btn-primary" onclick="EXT_SEARCH=document.getElementById('ext-q').value;extGoto('catalog')">Browse Catalog →</button>
+        <button class="btn btn-outline" onclick="extGoto('custom')">✏️ Custom Request</button>
+      </div>
+    </div>
+
+    ${!isInd && pendingEmpReqs.length?`
+    <!-- Employee requests directed to company -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:12px;font-weight:700;">👥 Employee Training Requests</div>
+        <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;background:rgba(217,119,6,.08);color:var(--orange);">${pendingEmpReqs.length} pending</span>
+      </div>
+      ${pendingEmpReqs.map(r=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--accent);flex-shrink:0;">${r.empName.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:700;">${r.courseTitle} <span style="font-weight:400;color:var(--text2);">— ${r.empName} (${r.empRole})</span></div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">"${r.note}"</div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="EXT_SEARCH='${r.courseTitle.replace(/'/g,"\\'")}';extGoto('catalog')">Find Course →</button>
+        <button class="btn btn-sm btn-outline" onclick="r.status='dismissed';toast('Dismissed','o');showPage('buy-dash')">Dismiss</button>
+      </div>`).join('')}
+    </div>`:''}
+
+    <!-- My orders with rollout status -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">📋 ${isInd?'My Enrollments':'My Orders'}</div>
+      ${myOrders.length===0?`<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px;">No orders yet.</div>`:''}
+      ${myOrders.map(o=>{
+        const l=MKT_LISTINGS.find(x=>x.id===o.listingId);
+        const p=MKT_PROVIDERS[l?.providerId];
+        const ro=MKT_ROLLOUTS[o.id];
+        return `
+        <div style="padding:13px 18px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:34px;height:34px;border-radius:9px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">${p?.logo}</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;">${l?.title}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px;">${p?.name} · ${o.seats} seat${o.seats>1?'s':''} · ${o.total.toLocaleString()} SAR · ${fd(o.date)}</div>
+            </div>
+            <span class="status-badge ${o.status==='confirmed'?'g':'o'}">${o.status==='confirmed'?'✓ Confirmed':'⏳ Pending'}</span>
+          </div>
+          ${!isInd&&o.status==='confirmed'?`
+          <div style="margin-top:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;display:flex;align-items:center;gap:12px;">
+            ${ro?`
+            <span style="font-size:11px;color:var(--text2);">Rollout: <strong>${ro.method==='invite'?'📨 Invite-only':ro.method==='self'?'🔓 Self-register':'🔀 Hybrid'}</strong></span>
+            <div style="flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${Math.round(ro.seatsFilled/ro.seatsTotal*100)}%;background:var(--accent);border-radius:3px;"></div></div>
+            <span style="font-size:11px;font-weight:700;color:var(--accent);">${ro.seatsFilled}/${ro.seatsTotal} enrolled</span>
+            <button class="btn btn-sm btn-outline" onclick="EXT_SELECTED_LISTING='${o.id}';extGoto('order')">Manage →</button>
+            `:`
+            <span style="flex:1;font-size:11px;color:var(--text2);">Choose how employees will join this training.</span>
+            <button class="btn btn-sm btn-primary" onclick="EXT_SELECTED_LISTING='${o.id}';extGoto('order')">Set Up Rollout →</button>
+            `}
+          </div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Custom requests -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">✏️ Custom Requests</div>
+      ${myReqs.length===0?`<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px;">No custom requests yet.</div>`:''}
+      ${myReqs.map(r=>`
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-size:12px;font-weight:700;">${r.courseTitle}</div>
+          <span class="status-badge ${r.status==='open'?'g':''}">${r.status==='open'?'Open':'Closed'}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2);">${mktDeliveryBadge(r.deliveryMode)} &nbsp; 👥 ${r.seats} &nbsp; 📅 ${r.preferredDates}</div>
+        <div style="margin-top:7px;font-size:11px;color:var(--accent);font-weight:700;">${r.offers} offer${r.offers!==1?'s':''} received <button class="btn btn-sm btn-outline" style="margin-left:8px;" onclick="toast('Viewing offers…','b')">View →</button></div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  const buyerRole = isInd ? '' : ' · ' + USERS.buyer_company.role;
+  return `
+<style>
+.ext-wrap{display:flex;flex-direction:column;height:calc(100vh - 58px);overflow:hidden;}
+.ext-top{padding:18px 26px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.ext-body{flex:1;overflow-y:auto;padding:20px 26px 36px;}
+.ext-tabs{display:flex;gap:4px;background:var(--surface3);border-radius:9px;padding:3px;}
+.ext-tab{padding:7px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);border:none;background:transparent;font-family:inherit;}
+.ext-tab.on{background:var(--surface);color:var(--accent);font-weight:700;box-shadow:0 0 0 1px var(--border);}
+</style>
+<div class="ext-wrap">
+  <div class="ext-top">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:19px;font-weight:800;">${isInd?'My Training Hub':'External Training Hub'}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${buyerName}${buyerRole}</div>
+      </div>
+      <div class="ext-tabs">
+        <button class="ext-tab ${EXT_VIEW==='home'?'on':''}" onclick="extGoto('home')">⊞ Overview</button>
+        <button class="ext-tab ${EXT_VIEW==='catalog'?'on':''}" onclick="extGoto('catalog')">🔍 Catalog</button>
+        <button class="ext-tab ${EXT_VIEW==='custom'?'on':''}" onclick="extGoto('custom')">✏️ Custom Request</button>
+      </div>
+    </div>
+  </div>
+  <div class="ext-body">${body}</div>
+</div>`;
+}
+
+// ── Course detail (provider listing) within External Hub ──
+function extCourseDetail(lid, isInd){
+  const l=MKT_LISTINGS.find(x=>x.id===lid);
+  const p=MKT_PROVIDERS[l.providerId];
+  const others = MKT_LISTINGS.filter(x=>x.sub===l.sub && x.id!==l.id && x.status==='approved');
+  return `
+<div class="ext-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 58px);overflow:hidden;">
+  <div style="padding:14px 26px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
+    <button class="btn btn-sm btn-outline" onclick="extGoto('catalog')">← Back to Catalog</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:22px 26px 36px;max-width:820px;">
+    <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;">
+      <div style="width:56px;height:56px;border-radius:13px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${p.logo}</div>
+      <div style="flex:1;">
+        <div style="font-size:19px;font-weight:800;margin-bottom:5px;">${l.title}</div>
+        <div style="font-size:12px;color:var(--text2);">By <strong>${p.name}</strong> ${p.verified?'<span style="color:var(--green);">✓ Verified</span>':''} · ${p.location} · Since ${p.founded}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:26px;font-weight:800;color:var(--accent);">${l.price.toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--text2);">${l.currency} ${l.priceUnit}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+      ${l.deliveryModes.map(mktDeliveryBadge).join('')}
+      <span style="font-size:11px;color:var(--text2);background:var(--surface2);padding:4px 10px;border-radius:6px;">⏱ ${l.duration}</span>
+      <span style="font-size:11px;color:var(--text2);background:var(--surface2);padding:4px 10px;border-radius:6px;">🗣 ${l.language}</span>
+      <span style="font-size:11px;color:var(--text2);background:var(--surface2);padding:4px 10px;border-radius:6px;">👥 ${l.minSeats}–${l.maxSeats} seats</span>
+      ${l.rating>0?`<span style="font-size:11px;color:var(--orange);background:var(--surface2);padding:4px 10px;border-radius:6px;">★ ${l.rating} (${l.reviews} reviews)</span>`:''}
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">About this course</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;">${l.desc}</div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Enroll</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="fg" style="margin-bottom:0;"><label class="fl">${isInd?'Participants':'Number of Seats'}</label><input class="form-input" id="ext-seats" type="number" value="${isInd?1:l.minSeats}" min="${l.minSeats}" max="${l.maxSeats}"></div>
+        <div class="fg" style="margin-bottom:0;"><label class="fl">Delivery Mode</label><select class="form-input">${l.deliveryModes.map(m=>`<option>${m==='online'?'💻 Online':'🏢 On-site'}</option>`).join('')}</select></div>
+      </div>
+      <button class="btn btn-primary" onclick="toast('Order placed! Awaiting provider confirmation.','g');extGoto('home')" style="width:100%;padding:12px;font-size:13px;">Place Order →</button>
+    </div>
+
+    ${others.length?`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Other providers for this course</div>
+      ${others.map(o=>{const op=MKT_PROVIDERS[o.providerId];return `
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;margin-bottom:8px;cursor:pointer;" onclick="EXT_SELECTED_LISTING='${o.id}';extGoto('course')">
+        <div style="width:30px;height:30px;border-radius:8px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:13px;">${op.logo}</div>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:700;">${o.title}</div><div style="font-size:10px;color:var(--text2);">${op.name}</div></div>
+        <div style="font-size:14px;font-weight:800;color:var(--accent);">${o.price.toLocaleString()} ${o.currency}</div>
+      </div>`;}).join('')}
+    </div>`:''}
+  </div>
+</div>`;
+}
+
+// ── Order rollout: invite / self-register / hybrid ──────────
+function extOrderRollout(orderId, isInd){
+  const o=MKT_ORDERS.find(x=>x.id===orderId);
+  const l=MKT_LISTINGS.find(x=>x.id===o.listingId);
+  if(!MKT_ROLLOUTS[orderId]) MKT_ROLLOUTS[orderId]={method:null, invited:[], seatsTotal:o.seats, seatsFilled:0};
+  const ro=MKT_ROLLOUTS[orderId];
+
+  const EMPLOYEES = ['Nora Al-Qahtani (Safety Officer)','Khalid Al-Anazi (Site Supervisor)','Sara Al-Otaibi (HSE Engineer)','Mohammed Al-Zahrani (Trainer)','Reem Al-Harbi (Coordinator)'];
+
+  return `
+<div class="ext-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 58px);overflow:hidden;">
+  <div style="padding:14px 26px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
+    <button class="btn btn-sm btn-outline" onclick="extGoto('home')">← Back</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:22px 26px 36px;max-width:680px;">
+    <div style="font-size:16px;font-weight:800;margin-bottom:4px;">${l.title}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:20px;">${o.seats} seats purchased · How should employees join this training?</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
+      <div onclick="ro.method='invite';showPage('buy-dash')" style="padding:16px;border:2px solid ${ro.method==='invite'?'var(--accent)':'var(--border)'};border-radius:11px;cursor:pointer;text-align:center;background:${ro.method==='invite'?'var(--accent-h)':'var(--surface)'};">
+        <div style="font-size:24px;margin-bottom:7px;">📨</div>
+        <div style="font-size:12px;font-weight:700;color:${ro.method==='invite'?'var(--accent)':'var(--text2)'};">Invite Only</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;">You choose who attends</div>
+      </div>
+      <div onclick="ro.method='self';showPage('buy-dash')" style="padding:16px;border:2px solid ${ro.method==='self'?'var(--blue)':'var(--border)'};border-radius:11px;cursor:pointer;text-align:center;background:${ro.method==='self'?'rgba(29,78,216,.05)':'var(--surface)'};">
+        <div style="font-size:24px;margin-bottom:7px;">🔓</div>
+        <div style="font-size:12px;font-weight:700;color:${ro.method==='self'?'var(--blue)':'var(--text2)'};">Self-Register</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;">Employees register themselves</div>
+      </div>
+      <div onclick="ro.method='hybrid';showPage('buy-dash')" style="padding:16px;border:2px solid ${ro.method==='hybrid'?'var(--green)':'var(--border)'};border-radius:11px;cursor:pointer;text-align:center;background:${ro.method==='hybrid'?'rgba(22,163,74,.05)':'var(--surface)'};">
+        <div style="font-size:24px;margin-bottom:7px;">🔀</div>
+        <div style="font-size:12px;font-weight:700;color:${ro.method==='hybrid'?'var(--green)':'var(--text2)'};">Hybrid</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;">Invite + open remaining seats</div>
+      </div>
+    </div>
+
+    ${(ro.method==='invite'||ro.method==='hybrid')?`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:11px;">Select employees to invite (${ro.invited.length}/${o.seats})</div>
+      ${EMPLOYEES.map((e,i)=>`
+      <label style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;">
+        <input type="checkbox" ${ro.invited.includes(e)?'checked':''} onchange="if(this.checked){ro.invited.push('${e.replace(/'/g,"\\'")}');ro.seatsFilled=ro.invited.length}else{ro.invited=ro.invited.filter(x=>x!=='${e.replace(/'/g,"\\'")}');ro.seatsFilled=ro.invited.length};showPage('buy-dash')" style="accent-color:var(--accent);width:15px;height:15px;">
+        <span style="font-size:12px;">${e}</span>
+      </label>`).join('')}
+      <button class="btn btn-sm btn-primary" onclick="toast('Invitations sent to '+ro.invited.length+' employees!','g')" style="margin-top:8px;">Send Invitations →</button>
+    </div>`:''}
+
+    ${(ro.method==='self'||ro.method==='hybrid')?`
+    <div style="background:rgba(29,78,216,.04);border:1px solid rgba(29,78,216,.15);border-radius:11px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--blue);">🔓 Self-Registration Link</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">Share this with employees — first-come, first-served for remaining seats.</div>
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" readonly value="https://safetyplus.sa/enroll/${o.id}" style="flex:1;font-family:monospace;font-size:11px;">
+        <button class="btn btn-sm btn-outline" onclick="toast('Link copied!','g')">📋 Copy</button>
+      </div>
+    </div>`:''}
+
+    ${ro.method?`
+    <div style="text-align:center;padding-top:6px;">
+      <button class="btn btn-primary" onclick="toast('Rollout saved!','g');extGoto('home')">Done — Back to Hub</button>
+    </div>`:''}
+  </div>
+</div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+//  PROVIDER — SINGLE-PAGE CONTROL PANEL
+// ════════════════════════════════════════════════════════════
+let PROV_VIEW = 'home'; // home | add-course | leads | order | sales
+let PROV_SELECTED_ORDER = null;
+const MKT_CURRENT_PROVIDER = 'P01';
+
+function provGoto(view, extra){
+  PROV_VIEW = view;
+  if(extra) Object.assign(window, extra);
+  showPage('prov-dash');
+}
+
+function provDash(){
+  const mine = mktProviderListings(MKT_CURRENT_PROVIDER);
+  const approved = mine.filter(l=>l.status==='approved').length;
+  const pending  = mine.filter(l=>l.status==='pending').length;
+  const myOrders = MKT_ORDERS.filter(o=>mine.some(l=>l.id===o.listingId));
+  const revenue  = myOrders.reduce((a,o)=>a+o.total,0);
+  const totalSeats = myOrders.reduce((a,o)=>a+o.seats,0);
+  const leads = MKT_CUSTOM_REQUESTS.filter(r=>r.category==='safety'&&r.status==='open');
+
+  if(PROV_VIEW==='add-course') return provAddCourseView();
+  if(PROV_VIEW==='order' && PROV_SELECTED_ORDER) return provOrderDetail();
+  if(PROV_VIEW==='sales') return provSalesView(mine, myOrders, leads);
+
+  let body = '';
+  if(PROV_VIEW==='leads'){
+    body = `
+    <div style="font-size:13px;font-weight:800;margin-bottom:14px;">💬 Custom Requests in Your Categories</div>
+    ${leads.map(r=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:11px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+        <div style="width:34px;height:34px;border-radius:9px;background:${r.buyerType==='company'?'var(--accent-h)':'rgba(29,78,216,.08)'};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">${r.buyerType==='company'?'🏬':'🧑'}</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.courseTitle}</div><div style="font-size:11px;color:var(--text2);">${r.buyerName} · ${r.buyerType==='company'?'Company':'Individual'} · Posted ${r.postedDaysAgo}d ago</div></div>
+        <span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(22,163,74,.08);color:var(--green);">Open</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px;">
+        ${mktDeliveryBadge(r.deliveryMode)}<span style="font-size:11px;color:var(--text2);">👥 ${r.seats}</span><span style="font-size:11px;color:var(--text2);">📅 ${r.preferredDates}</span><span style="font-size:11px;color:var(--text2);">📍 ${r.location}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);background:var(--surface2);padding:9px 12px;border-radius:8px;margin-bottom:11px;">"${r.notes}"</div>
+      <div style="display:flex;align-items:center;gap:9px;">
+        <input class="form-input" placeholder="Quote price (SAR)" style="max-width:150px;font-size:12px;padding:8px 11px;">
+        <button class="btn btn-sm btn-primary" onclick="toast('Offer sent!','g')">Send Offer →</button>
+        <span style="font-size:11px;color:var(--text3);margin-left:auto;">${r.offers} response${r.offers!==1?'s':''} so far</span>
+      </div>
+    </div>`).join('')}`;
+  } else {
+    body = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+      ${[
+        {l:'Approved Courses', v:approved, c:'var(--green)', ic:'✅'},
+        {l:'Pending Review',   v:pending,  c:'var(--orange)', ic:'⏳'},
+        {l:'Total Revenue',    v:revenue.toLocaleString()+' SAR', c:'var(--accent)', ic:'💰'},
+        {l:'Open Leads',       v:leads.length, c:'var(--blue)', ic:'💬'},
+      ].map(s=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:15px 17px;border-top:3px solid ${s.c};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;"><span style="font-size:11px;color:var(--text2);">${s.l}</span><span style="font-size:16px;">${s.ic}</span></div>
+        <div style="font-size:21px;font-weight:800;color:${s.c};">${s.v}</div>
+      </div>`).join('')}
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:12px;font-weight:700;">📚 My Courses</div>
+        <button class="btn btn-sm btn-primary" onclick="provGoto('add-course')">+ Add Course</button>
+      </div>
+      ${mine.map(l=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">🦺</div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span style="font-size:12px;font-weight:700;">${l.title}</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:${l.status==='approved'?'rgba(22,163,74,.08)':'rgba(217,119,6,.08)'};color:${l.status==='approved'?'var(--green)':'var(--orange)'};">${l.status==='approved'?'✓ Approved':'⏳ Pending Review'}</span>
+          </div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;">${l.deliveryModes.map(mktDeliveryBadge).join('')}<span style="font-size:11px;color:var(--text2);">${l.price} ${l.currency} · ${l.duration}</span></div>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="toast('Opening editor…','b')">Edit</button>
+      </div>`).join('')}
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:12px;font-weight:700;">📋 Enrollment Orders</div>
+        <span style="font-size:11px;color:var(--text2);">${totalSeats} total seats</span>
+      </div>
+      ${myOrders.length===0?`<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px;">No orders yet.</div>`:''}
+      ${myOrders.map(o=>{const l=MKT_LISTINGS.find(x=>x.id===o.listingId);return `
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="provGoto('order',{PROV_SELECTED_ORDER:'${o.id}'})">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">${o.buyerType==='company'?'🏬':'🧑'}</div>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:700;">${l?.title}</div><div style="font-size:11px;color:var(--text2);">${o.buyerName} · ${o.seats} seats · ${o.total.toLocaleString()} SAR</div></div>
+        <span class="status-badge ${o.status==='confirmed'?'g':'o'}">${o.status==='confirmed'?'✓ Confirmed':'⏳ Pending'}</span>
+        <span style="font-size:13px;color:var(--text3);">›</span>
+      </div>`;}).join('')}
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;">💬 Custom Requests Matching You</div>
+      ${leads.slice(0,2).map(r=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);">
+        <div style="width:30px;height:30px;border-radius:9px;background:${r.buyerType==='company'?'var(--accent-h)':'rgba(29,78,216,.08)'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${r.buyerType==='company'?'🏬':'🧑'}</div>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:700;">${r.courseTitle}</div><div style="font-size:11px;color:var(--text2);">${r.buyerName} · ${mktDeliveryBadge(r.deliveryMode)}</div></div>
+        <button class="btn btn-sm btn-primary" onclick="provGoto('leads')">View →</button>
+      </div>`).join('')}
+      ${leads.length>2?`<div style="padding:11px 18px;text-align:center;"><button class="btn btn-sm btn-outline" onclick="provGoto('leads')">View all ${leads.length} requests →</button></div>`:''}
+    </div>`;
+  }
+
+  return `
+<style>
+.ext-wrap{display:flex;flex-direction:column;height:calc(100vh - 58px);overflow:hidden;}
+.ext-top{padding:18px 26px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.ext-body{flex:1;overflow-y:auto;padding:20px 26px 36px;max-width:1080px;}
+.ext-tabs{display:flex;gap:4px;background:var(--surface3);border-radius:9px;padding:3px;}
+.ext-tab{padding:7px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);border:none;background:transparent;font-family:inherit;}
+.ext-tab.on{background:var(--surface);color:var(--accent);font-weight:700;box-shadow:0 0 0 1px var(--border);}
+</style>
+<div class="ext-wrap">
+  <div class="ext-top">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:19px;font-weight:800;">Provider Control Panel</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">TrainPro Co. · Training Provider</div>
+      </div>
+      <div class="ext-tabs">
+        <button class="ext-tab ${PROV_VIEW==='home'?'on':''}" onclick="provGoto('home')">⊞ Overview</button>
+        <button class="ext-tab ${PROV_VIEW==='sales'?'on':''}" onclick="provGoto('sales')">💰 Sales</button>
+        <button class="ext-tab ${PROV_VIEW==='leads'?'on':''}" onclick="provGoto('leads')">💬 Custom Requests ${leads.length?`(${leads.length})`:''}</button>
+        <button class="ext-tab" onclick="provGoto('add-course')">+ Add Course</button>
+      </div>
+    </div>
+  </div>
+  <div class="ext-body">${body}</div>
+</div>`;
+}
+
+function provSalesView(mine, myOrders, leads){
+  const VAT = 0.15;
+
+  const COURSES = [
+    {
+      id:'C001', courseType:'public',
+      program:'ISO 45001 OH&S Management System', category:'Safety',
+      course:'ISO 45001:2018 Awareness Training', pricePerSeat:450,
+      buyers:[
+        {buyerType:'company',    buyer:'Al-Rashid Industries',   purchasedBy:'Maha Saleh (HR Manager)',       seats:12, coupon:'CORP10', couponPct:10, date:'2026-07-08', time:'10:23'},
+        {buyerType:'company',    buyer:'Gulf Petrochemicals Co.', purchasedBy:'Tariq Al-Otaibi (HSE Lead)',    seats:8,  coupon:null,     couponPct:0,  date:'2026-07-10', time:'14:05'},
+        {buyerType:'individual', buyer:'Faisal Al-Dossari',       purchasedBy:null,                            seats:1,  coupon:'IND15',  couponPct:15, date:'2026-07-11', time:'09:47'},
+      ]
+    },
+    {
+      id:'C002', courseType:'public',
+      program:'ISO 45001 OH&S Management System', category:'Safety',
+      course:'ISO 45001 Internal Auditor Course', pricePerSeat:1200,
+      buyers:[
+        {buyerType:'company',    buyer:'Al-Rashid Industries', purchasedBy:'Maha Saleh (HR Manager)', seats:5,  coupon:null,    couponPct:0,  date:'2026-07-12', time:'11:30'},
+        {buyerType:'individual', buyer:'Ahmed Al-Harbi',        purchasedBy:null,                      seats:1,  coupon:'IND15', couponPct:15, date:'2026-07-13', time:'16:10'},
+      ]
+    },
+    {
+      id:'C003', courseType:'public',
+      program:'ISO 45001 OH&S Management System', category:'Safety',
+      course:'ISO 45001 Lead Auditor (Certified)', pricePerSeat:5200,
+      buyers:[
+        {buyerType:'company', buyer:'Gulf Petrochemicals Co.', purchasedBy:'Sara Al-Shehri (Training Coord.)', seats:6, coupon:'CORP10', couponPct:10, date:'2026-07-09', time:'13:00'},
+        {buyerType:'company', buyer:'National Water Co.',       purchasedBy:'Khalid Al-Nasser (HR Director)',    seats:4, coupon:null,     couponPct:0,  date:'2026-07-14', time:'08:55'},
+      ]
+    },
+    {
+      id:'C004', courseType:'custom',
+      program:'ISO 45001 OH&S Management System', category:'Safety',
+      course:'ISO 45001 Internal Auditor (Custom On-site)', pricePerSeat:1400,
+      buyers:[
+        {buyerType:'company', buyer:'Al-Rashid Industries', purchasedBy:'Maha Saleh (HR Manager)', seats:12, coupon:null, couponPct:0, date:'2026-06-28', time:'15:20'},
+      ]
+    },
+    {
+      id:'C005', courseType:'custom',
+      program:'ISO 45001 OH&S Management System', category:'Safety',
+      course:'ISO 45001 Awareness (Custom Online)', pricePerSeat:250,
+      buyers:[
+        {buyerType:'individual', buyer:'Faisal Al-Dossari', purchasedBy:null, seats:1, coupon:'IND15', couponPct:15, date:'2026-07-01', time:'20:14'},
+      ]
+    },
+  ];
+
+  const PENDING = [
+    {id:'PR01', buyerType:'company',    buyer:'National Water Co.',      course:'ISO 45001 Awareness',        delivery:'Online',  seats:20, budget:'8,000 SAR',  date:'2026-06-30', note:'Arabic preferred, weekend schedule'},
+    {id:'PR02', buyerType:'individual', buyer:'Ahmed Al-Harbi',          course:'ISO 45001 Lead Implementer', delivery:'On-site', seats:1,  budget:'5,000 SAR',  date:'2026-07-02', note:'CQI/IRCA accredited certificate required'},
+    {id:'PR03', buyerType:'company',    buyer:'Aramco Contractors Ltd',   course:'ISO 45001 Internal Auditor', delivery:'On-site', seats:15, budget:'Negotiable', date:'2026-07-05', note:'Riyadh facility, 3-day intensive'},
+  ];
+
+  if(!window.SALES_FILTER) window.SALES_FILTER='all';
+  const filtered = COURSES.filter(c=>{
+    if(window.SALES_FILTER==='public')     return c.courseType==='public';
+    if(window.SALES_FILTER==='custom')     return c.courseType==='custom';
+    if(window.SALES_FILTER==='company')    return c.buyers.some(b=>b.buyerType==='company');
+    if(window.SALES_FILTER==='individual') return c.buyers.some(b=>b.buyerType==='individual');
+    return true;
+  });
+
+  // calc per buyer: apply coupon then VAT
+  const buyerCalc = (b, pricePerSeat) => {
+    const disc    = Math.round(pricePerSeat * (b.couponPct/100));
+    const net     = pricePerSeat - disc;
+    const sub     = b.seats * net;
+    const vat     = Math.round(sub * VAT);
+    const grand   = sub + vat;
+    return {disc, net, sub, vat, grand};
+  };
+
+  const totalBefore = filtered.reduce((a,c)=>a+c.buyers.reduce((b,r)=>{const {sub}=buyerCalc(r,c.pricePerSeat);return b+sub;},0),0);
+  const totalVAT    = Math.round(totalBefore*VAT);
+  const totalAfter  = totalBefore+totalVAT;
+  const totalSeats  = filtered.reduce((a,c)=>a+c.buyers.reduce((b,r)=>b+r.seats,0),0);
+  const totalBuyers = filtered.reduce((a,c)=>a+c.buyers.length,0);
+
+  return `
+<div style="max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:14px;">
+
+  <!-- ① STATS -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+    ${[
+      {l:'Total excl. VAT', v:totalBefore.toLocaleString()+' SAR', sub:totalSeats+' seats · '+filtered.length+' courses', c:'var(--accent)', ic:'💰'},
+      {l:'VAT 15%',         v:'+'+totalVAT.toLocaleString()+' SAR', sub:'Added to invoice',   c:'var(--orange)', ic:'🧾'},
+      {l:'Total incl. VAT', v:totalAfter.toLocaleString()+' SAR',   sub:'Final amount',        c:'var(--green)',  ic:'✅'},
+      {l:'Open Requests',   v:PENDING.length,                        sub:'Awaiting your reply', c:'var(--blue)',   ic:'📬'},
+    ].map(s=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 15px;border-top:3px solid ${s.c};">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:10px;color:var(--text2);font-weight:600;">${s.l}</span><span style="font-size:14px;">${s.ic}</span></div>
+      <div style="font-size:15px;font-weight:800;color:${s.c};margin-bottom:2px;">${s.v}</div>
+      <div style="font-size:9px;color:var(--text3);">${s.sub}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- ② CONFIRMED SALES TABLE -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;">
+    <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:12px;font-weight:700;">✅ Confirmed Sales</span>
+      <div style="flex:1;"></div>
+      <div style="display:flex;gap:3px;background:var(--surface3);border-radius:7px;padding:3px;">
+        ${[['all','All'],['public','Public'],['custom','Custom'],['company','Company'],['individual','Individual']].map(([v,l])=>`
+        <button onclick="window.SALES_FILTER='${v}';provGoto('sales')"
+          style="padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;border:none;font-family:inherit;
+          font-weight:${window.SALES_FILTER===v?'700':'500'};
+          background:${window.SALES_FILTER===v?'var(--surface)':'transparent'};
+          color:${window.SALES_FILTER===v?'var(--accent)':'var(--text2)'};
+          box-shadow:${window.SALES_FILTER===v?'0 0 0 1px var(--border)':'none'};">${l}</button>`).join('')}
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;min-width:780px;">
+      <colgroup>
+        <col style="width:34px">
+        <col style="width:68px">
+        <col style="width:120px">
+        <col style="width:80px">
+        <col>
+        <col style="width:85px">
+        <col style="width:55px">
+        <col style="width:90px">
+        <col style="width:70px">
+        <col style="width:105px">
+        <col style="width:42px">
+      </colgroup>
+      <thead>
+        <tr style="background:var(--surface3);">
+          <th></th>
+          <th style="padding:7px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">Type</th>
+          <th style="padding:7px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">Program</th>
+          <th style="padding:7px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">Category</th>
+          <th style="padding:7px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">Course</th>
+          <th style="padding:7px 8px;text-align:right;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">Price/Seat</th>
+          <th style="padding:7px 8px;text-align:center;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">Seats</th>
+          <th style="padding:7px 8px;text-align:right;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">excl. VAT</th>
+          <th style="padding:7px 8px;text-align:right;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">VAT</th>
+          <th style="padding:7px 10px;text-align:right;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;">Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      ${filtered.map((course,ci)=>{
+        const courseSeats = course.buyers.reduce((a,b)=>a+b.seats,0);
+        const courseSub   = course.buyers.reduce((a,b)=>{const {sub}=buyerCalc(b,course.pricePerSeat);return a+sub;},0);
+        const courseVAT   = Math.round(courseSub*VAT);
+        const courseGrand = courseSub+courseVAT;
+        const expandId    = 'exp_'+course.id;
+        const isCustom    = course.courseType==='custom';
+        return `
+        <tr style="border-top:1px solid var(--border);background:var(--surface2);cursor:pointer;"
+          onclick="const d=document.getElementById('${expandId}');d.style.display=d.style.display==='none'?'':'none';">
+          <td style="padding:10px;text-align:center;font-size:11px;color:var(--text3);">▾</td>
+          <td style="padding:10px 8px;">
+            <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;
+              background:${isCustom?'rgba(124,58,237,.08)':'rgba(29,78,216,.08)'};
+              color:${isCustom?'#7c3aed':'var(--blue)'};">${isCustom?'Custom':'Public'}</span>
+          </td>
+          <td style="padding:10px 8px;overflow:hidden;"><div style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${course.program}</div></td>
+          <td style="padding:10px 8px;"><span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(220,38,38,.07);color:var(--red);">${course.category}</span></td>
+          <td style="padding:10px 8px;overflow:hidden;">
+            <div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${course.course}</div>
+            <div style="font-size:9px;color:var(--text2);">${course.buyers.length} buyer${course.buyers.length>1?'s':''} · ${courseSeats} seats</div>
+          </td>
+          <td style="padding:10px 8px;font-size:11px;font-weight:700;text-align:right;white-space:nowrap;">${course.pricePerSeat.toLocaleString()} SAR</td>
+          <td style="padding:10px 8px;font-size:14px;font-weight:800;color:var(--accent);text-align:center;">${courseSeats}</td>
+          <td style="padding:10px 8px;font-size:11px;text-align:right;white-space:nowrap;">${courseSub.toLocaleString()} SAR</td>
+          <td style="padding:10px 8px;font-size:11px;color:var(--orange);text-align:right;white-space:nowrap;">+${courseVAT.toLocaleString()}</td>
+          <td style="padding:10px 10px;font-size:12px;font-weight:800;color:var(--green);text-align:right;white-space:nowrap;">${courseGrand.toLocaleString()} SAR</td>
+          <td style="padding:10px 6px;"></td>
+        </tr>
+        <tr id="${expandId}" style="display:none;">
+          <td colspan="11" style="padding:0;background:rgba(107,45,94,.02);">
+            <table style="width:100%;border-collapse:collapse;table-layout:fixed;min-width:780px;">
+              <colgroup>
+                <col style="width:34px">
+                <col style="width:68px">
+                <col style="width:200px"><!-- buyer -->
+                <col><!-- purchased by -->
+                <col style="width:110px"><!-- date/time -->
+                <col style="width:70px"><!-- coupon -->
+                <col style="width:55px"><!-- seats -->
+                <col style="width:90px"><!-- excl -->
+                <col style="width:70px"><!-- vat -->
+                <col style="width:105px"><!-- total -->
+                <col style="width:42px"><!-- invoice -->
+              </colgroup>
+              <thead>
+                <tr style="background:rgba(107,45,94,.04);border-top:1px solid var(--border);">
+                  <th></th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;"></th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;">Buyer</th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;">Purchased By</th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;">Date · Time</th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center;">Coupon</th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center;">Seats</th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:right;">excl. VAT</th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:right;">VAT</th>
+                  <th style="padding:5px 10px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:right;">Total</th>
+                  <th style="padding:5px 8px;font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center;">Inv.</th>
+                </tr>
+              </thead>
+              <tbody>
+              ${course.buyers.map((b,bi)=>{
+                const {disc,net,sub,vat,grand} = buyerCalc(b,course.pricePerSeat);
+                return `
+                <tr style="border-top:1px solid var(--border);background:${bi%2?'rgba(107,45,94,.015)':'var(--surface)'};">
+                  <td style="padding:9px 10px;text-align:center;font-size:10px;color:var(--text3);">└</td>
+                  <td style="padding:9px 8px;font-size:12px;text-align:center;">${b.buyerType==='company'?'🏬':'🧑'}</td>
+                  <td style="padding:9px 8px;overflow:hidden;">
+                    <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.buyer}</div>
+                    <div style="font-size:9px;color:var(--text3);">${b.buyerType==='company'?'Company':'Individual'}</div>
+                  </td>
+                  <td style="padding:9px 8px;overflow:hidden;">
+                    ${b.purchasedBy
+                      ? `<div style="font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👤 ${b.purchasedBy}</div>`
+                      : `<div style="font-size:10px;color:var(--text3);">—</div>`}
+                  </td>
+                  <td style="padding:9px 8px;white-space:nowrap;">
+                    <div style="font-size:10px;font-weight:600;">${b.date}</div>
+                    <div style="font-size:9px;color:var(--text3);">⏰ ${b.time}</div>
+                  </td>
+                  <td style="padding:9px 8px;text-align:center;">
+                    ${b.coupon
+                      ? `<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(22,163,74,.1);color:var(--green);font-family:monospace;">${b.coupon}</div>
+                         <div style="font-size:9px;color:var(--green);margin-top:1px;">-${b.couponPct}% (-${disc.toLocaleString()})</div>`
+                      : `<span style="font-size:10px;color:var(--text3);">—</span>`}
+                  </td>
+                  <td style="padding:9px 8px;font-size:13px;font-weight:800;color:var(--accent);text-align:center;">${b.seats}</td>
+                  <td style="padding:9px 8px;font-size:11px;text-align:right;white-space:nowrap;">${sub.toLocaleString()} SAR</td>
+                  <td style="padding:9px 8px;font-size:11px;color:var(--orange);text-align:right;white-space:nowrap;">+${vat.toLocaleString()}</td>
+                  <td style="padding:9px 10px;font-size:12px;font-weight:800;color:var(--green);text-align:right;white-space:nowrap;">${grand.toLocaleString()} SAR</td>
+                  <td style="padding:9px 6px;text-align:center;">
+                    <button onclick="event.stopPropagation();toast('Generating invoice…','b')"
+                      title="Generate Invoice"
+                      style="width:26px;height:26px;border:1px solid var(--border);background:var(--surface2);border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;margin:0 auto;">🧾</button>
+                  </td>
+                </tr>`;
+              }).join('')}
+              </tbody>
+            </table>
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid var(--border);background:var(--surface3);">
+          <td colspan="5" style="padding:9px 14px;font-size:11px;font-weight:700;color:var(--text2);">${filtered.length} course${filtered.length!==1?'s':''} · ${totalBuyers} buyer${totalBuyers!==1?'s':''} · ${totalSeats} seats</td>
+          <td colspan="2"></td>
+          <td style="padding:9px 8px;font-size:11px;font-weight:700;text-align:right;white-space:nowrap;">${totalBefore.toLocaleString()} SAR</td>
+          <td style="padding:9px 8px;font-size:11px;font-weight:700;color:var(--orange);text-align:right;white-space:nowrap;">+${totalVAT.toLocaleString()}</td>
+          <td style="padding:9px 10px;font-size:13px;font-weight:800;color:var(--green);text-align:right;white-space:nowrap;">${totalAfter.toLocaleString()} SAR</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>
+  </div>
+
+  <!-- ③ PENDING REQUESTS -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;">
+    <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div><span style="font-size:12px;font-weight:700;">📬 Pending Custom Requests</span><span style="font-size:10px;color:var(--text2);margin-left:8px;">Awaiting your confirmation</span></div>
+      <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;background:rgba(29,78,216,.08);color:var(--blue);">${PENDING.length} open</span>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;min-width:680px;">
+      <colgroup><col style="width:60px"><col style="width:170px"><col><col style="width:85px"><col style="width:55px"><col style="width:95px"><col style="width:148px"></colgroup>
+      <thead>
+        <tr style="background:var(--surface3);">
+          <th style="padding:7px 14px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;">Ref</th>
+          <th style="padding:7px 8px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;">Buyer</th>
+          <th style="padding:7px 8px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;">Course Requested</th>
+          <th style="padding:7px 8px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:left;">Delivery</th>
+          <th style="padding:7px 8px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center;">Seats</th>
+          <th style="padding:7px 8px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:right;">Budget</th>
+          <th style="padding:7px 12px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      ${PENDING.map((r,i)=>`
+      <tr style="border-top:1px solid var(--border);background:${i%2?'var(--surface2)':'var(--surface)'};">
+        <td style="padding:10px 14px;font-size:10px;color:var(--text3);font-family:monospace;">${r.id}</td>
+        <td style="padding:10px 8px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>${r.buyerType==='company'?'🏬':'🧑'}</span>
+            <div style="min-width:0;">
+              <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.buyer}</div>
+              <div style="font-size:9px;color:var(--text3);">${r.buyerType==='company'?'Company':'Individual'} · ${fd(r.date)}</div>
+            </div>
+          </div>
+        </td>
+        <td style="padding:10px 8px;overflow:hidden;">
+          <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.course}</div>
+          <div style="font-size:9px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.note}</div>
+        </td>
+        <td style="padding:10px 8px;font-size:11px;white-space:nowrap;">${r.delivery}</td>
+        <td style="padding:10px 8px;font-size:13px;font-weight:800;color:var(--accent);text-align:center;">${r.seats}</td>
+        <td style="padding:10px 8px;font-size:11px;font-weight:700;text-align:right;white-space:nowrap;">${r.budget}</td>
+        <td style="padding:10px 12px;">
+          <div style="display:flex;gap:5px;justify-content:center;">
+            <button class="btn btn-sm btn-primary" onclick="toast('Offer sent!','g')" style="font-size:10px;padding:4px 10px;">Send Offer</button>
+            <button class="btn btn-sm btn-outline" onclick="toast('Dismissed','o')" style="font-size:10px;padding:4px 8px;">✕</button>
+          </div>
+        </td>
+      </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+</div>`;
+}
+
+function provAddCourseView(){
+  return `
+<div class="ext-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 58px);overflow:hidden;">
+  <div style="padding:14px 26px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
+    <button class="btn btn-sm btn-outline" onclick="provGoto('home')">← Back</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:22px 26px 36px;max-width:680px;">
+    <div style="font-size:16px;font-weight:800;margin-bottom:16px;">+ Add Course</div>
+    <div class="fg"><label class="fl">Category</label><select class="form-input"><option value="safety">Safety</option></select></div>
+    <div class="fg"><label class="fl">Sub-category</label><select class="form-input"><option value="iso45001">ISO 45001 (OH&S Management)</option></select></div>
+    <div class="fg"><label class="fl">Course Title</label><input class="form-input" placeholder="e.g. ISO 45001 Internal Auditor Course"></div>
+    <div class="fg"><label class="fl">Description</label><textarea class="form-input" rows="3" placeholder="Brief description"></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="fg"><label class="fl">Duration</label><input class="form-input" placeholder="e.g. 2 days (16 hrs)"></div>
+      <div class="fg"><label class="fl">Language</label><input class="form-input" placeholder="Arabic / English"></div>
+    </div>
+    <div class="fg"><label class="fl">Delivery Mode</label>
+      <div style="display:flex;gap:14px;margin-top:6px;">
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;"><input type="checkbox" checked> 💻 Online</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;"><input type="checkbox"> 🏢 On-site</label>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+      <div class="fg"><label class="fl">Price (SAR)</label><input class="form-input" type="number" placeholder="450"></div>
+      <div class="fg"><label class="fl">Min Seats</label><input class="form-input" type="number" placeholder="5"></div>
+      <div class="fg"><label class="fl">Max Seats</label><input class="form-input" type="number" placeholder="30"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-primary" onclick="toast('Course submitted for admin approval!','g');provGoto('home')">Submit for Approval</button>
+      <button class="btn btn-outline" onclick="provGoto('home')">Cancel</button>
+    </div>
+    <div style="margin-top:14px;padding:11px 14px;background:rgba(217,119,6,.06);border:1px solid rgba(217,119,6,.15);border-radius:8px;font-size:11px;color:var(--orange);">
+      ℹ️ New courses require admin approval before appearing in the catalog.
+    </div>
+  </div>
+</div>`;
+}
+
+function provOrderDetail(){
+  const o = MKT_ORDERS.find(x=>x.id===PROV_SELECTED_ORDER);
+  const l = MKT_LISTINGS.find(x=>x.id===o.listingId);
+  return `
+<div class="ext-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 58px);overflow:hidden;">
+  <div style="padding:14px 26px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;">
+    <button class="btn btn-sm btn-outline" onclick="provGoto('home')">← Back</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:22px 26px 36px;max-width:600px;">
+    <div style="font-size:16px;font-weight:800;margin-bottom:6px;">${l.title}</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:18px;">Order ${o.id} · ${o.buyerName}</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px;"><span style="color:var(--text2);">Seats</span><strong>${o.seats}</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px;"><span style="color:var(--text2);">Total</span><strong>${o.total.toLocaleString()} SAR</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--text2);">Status</span><span class="status-badge ${o.status==='confirmed'?'g':'o'}">${o.status==='confirmed'?'✓ Confirmed':'⏳ Pending'}</span></div>
+    </div>
+    ${o.status==='pending'?`<button class="btn btn-primary" onclick="o.status='confirmed';toast('Order confirmed!','g');provGoto('home')">Confirm Order →</button>`:''}
+  </div>
+</div>`;
+}
+
+
+function adminProviderApprovals(){
+  const pending = MKT_LISTINGS.filter(l=>l.status==='pending');
+  return `
+<div class="ph"><div class="pt">Provider Course Approvals <small>Review course listings submitted by external providers</small></div></div>
+<div class="info-box">
+  ${pending.length===0?'<div style="font-size:12px;color:var(--text3);">No pending approvals.</div>':''}
+  ${pending.map(l=>{
+    const p=MKT_PROVIDERS[l.providerId];
+    return `
+    <div style="padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:11px;margin-bottom:11px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+        <div style="width:36px;height:36px;border-radius:9px;background:var(--accent-h);display:flex;align-items:center;justify-content:center;font-size:16px;">${p.logo}</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${l.title}</div><div style="font-size:11px;color:var(--text2);">By ${p.name} ${p.type==='individual'?'(Individual)':'(Company)'} ${p.verified?'✓':'— Unverified'}</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">${l.desc}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        ${l.deliveryModes.map(mktDeliveryBadge).join('')}
+        <span style="font-size:11px;color:var(--text2);">${l.price} ${l.currency} ${l.priceUnit}</span>
+        <span style="font-size:11px;color:var(--text2);">⏱ ${l.duration}</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm btn-primary" onclick="l.status='approved';toast('Course approved!','g');showPage('admin-requests')">✓ Approve</button>
+        <button class="btn btn-sm btn-outline" onclick="toast('Course rejected','r')">✕ Reject</button>
+      </div>
+    </div>`;
+  }).join('')}
+</div>`;
+}
+
 
 function showToast(msg, type='g') {
   const t = document.getElementById('toast');
